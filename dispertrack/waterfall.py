@@ -25,7 +25,7 @@ def create_waterfall(data_filename, out_filename, axis=1):
 
     with h5py.File(out_filename, "a") as f:
         group = f.create_group(input_filename)
-        group.create_dataset('waterfall', data=waterfall)
+        group.create_dataset('waterfall', data=waterfall.T)
 
 
 def calculate_waterfall_background(waterfall, axis=1, sigma=50):

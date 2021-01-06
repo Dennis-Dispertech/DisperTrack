@@ -96,7 +96,7 @@ def link_frames(frames, radius, memory=20):
                     continue
 
                 if dest.size > 1:
-                    print('More than one possible dest!')
+                    print('More than one possible dest in memory!')
                     print(f'Dest: {dest}')
 
                 if dest.size == 1:
