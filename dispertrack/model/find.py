@@ -9,7 +9,7 @@ def find_peaks1d(image, separation, threshold=None, percentile=64, margin=None, 
     """
 
     if margin is None:
-        margin = int(separation/2)
+        margin = int(separation/2)+1
 
     if threshold is None:
         not_black = image[np.nonzero(image)]
@@ -43,7 +43,8 @@ def find_peaks1d(image, separation, threshold=None, percentile=64, margin=None, 
         pos = np.sort(pos)
         diff = np.diff(pos)
         splits = np.squeeze(np.argwhere(diff > separation))
-        if splits.size == 1: return pos
+        if splits.size == 1:
+            return pos
         start = 0
         for split in splits:
             split += 1

@@ -19,11 +19,14 @@ def refine_positions(image, coords, radius, max_iterations=2, threshold=1):
                 break
 
             # Move the center to the next pixel and calculate again
-            if cm_n > threshold: coord += 1
-            if cm_n < -threshold: coord -=1
+            if cm_n > threshold:
+                coord += 1
+            if cm_n < -threshold:
+                coord -= 1
 
             upper_bound = len(image) - 1 - radius
-            if coord > upper_bound: coord = upper_bound
+            if coord > upper_bound:
+                coord = upper_bound
 
         final_coords[feat] = cm_i
 

@@ -20,7 +20,7 @@ def link(positions_ini, positions_end, radius):
     return links
 
 
-def link_frames(frames, radius, memory=20):
+def link_frames(frames, radius, memory=20, initial_drift=0):
     """ Link the particles in all the frames, using the specified radius.
     """
 
@@ -28,7 +28,7 @@ def link_frames(frames, radius, memory=20):
 
     curr_particle = 1
     missing = {}
-    drift = 0
+    drift = initial_drift
 
     for frame_num in range(frames['frame'].min(), frames['frame'].max()):
         frame_ini_array = np.array(frames.loc[frames['frame'] == frame_num, 'position'].array) + drift
@@ -95,9 +95,9 @@ def link_frames(frames, radius, memory=20):
                     print(frame_ini_array)
                     continue
 
-                if dest.size > 1:
-                    print('More than one possible dest in memory!')
-                    print(f'Dest: {dest}')
+                # if dest.size > 1:
+                #     print('More than one possible dest in memory!')
+                #     print(f'Dest: {dest}')
 
                 if dest.size == 1:
                     frames.loc[frames.loc[frames['frame'] == frame_num + 1,'particle'].index[dest], 'particle'] = pcle_num
@@ -132,8 +132,10 @@ def link_frames(frames, radius, memory=20):
         # if len(duplicated) >= 1:
         #     print(f'Duplicated particles in frame {frame_num}: {duplicated}')
 
-        if frame_num % 50 == 0:
-            print(f'Frame: {frame_num} out of {frames["frame"].max()}\nParticles so far: {curr_particle}', end='\r')
+        if frame_num % 200 == 0:
+            print(f'Frame: {frame_num} out of {frames["frame"].max()}\nParticles so far: {curr_particle}',
+                  end='\r')
     return frames
+
 
 
