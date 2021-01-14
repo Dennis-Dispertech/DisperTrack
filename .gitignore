@@ -1,6 +1,6 @@
 .idea/
 *.pyproject.user
-
+.DS_Store
 output/
 
 # Created by .ignore support plugin (hsz.mobi)
