@@ -1,4 +1,6 @@
 from pathlib import Path
+from threading import Thread
+
 import numpy as np
 
 from PyQt5 import uic
@@ -14,7 +16,7 @@ import pyqtgraph as pg
 class WaterfallWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        uic.loadUi(view_folder / 'GUI' / 'form.ui', self)
+        uic.loadUi(view_folder / 'GUI' / 'waterfall_analysis.ui', self)
         self.analyze_model = AnalyzeWaterfall()
         self.action_open.triggered.connect(self.open_waterfall)
         self.action_transpose.triggered.connect(self.transpose_waterfall)
@@ -56,6 +58,13 @@ class WaterfallWindow(QMainWindow):
 
         self.update_image(self.analyze_model.waterfall)
         self.analyze_model.contextual_data.update({'last_dir': str(file.parent)})
+        if ind := self.analyze_model.metadata['bkg_axis'] is not None:
+            self.combo_bkg_axis.setCurrentIndex(ind)
+
+        if sigma := self.analyze_model.metadata['bkg_sigma'] is not None:
+            self.line_bkg.setText(str(sigma))
+        else:
+            self.line_bkg.setText('')
 
     def update_image(self, image):
         self.waterfall_image.setImage(image, autoLevels=True, autoRange=True)
@@ -76,8 +85,24 @@ class WaterfallWindow(QMainWindow):
         self.update_image(self.analyze_model.waterfall)
 
     def calculate_background(self):
-        self.analyze_model.calculate_background()
-        self.update_image(self.analyze_model.corrected_data)
+        def calculate_bkg_thread(self, axis, sigma):
+            self.statusbar.showMessage('Calculating Background')
+            if sigma is not None:
+                self.analyze_model.calculate_background(axis=axis, sigma=sigma)
+            else:
+                self.analyze_model.calculate_background(axis=axis)
+
+            self.update_image(self.analyze_model.corrected_data)
+            self.statusbar.showMessage('')
+
+        axis = int(self.combo_bkg_axis.currentIndex())
+        if sigma := self.line_bkg.text() != '':
+            sigma = int(sigma)
+        else:
+            sigma = None
+
+        t = Thread(target=calculate_bkg_thread, args=(self, axis, sigma))
+        t.start()
 
     def transpose_waterfall(self):
         self.analyze_model.transpose_waterfall()
