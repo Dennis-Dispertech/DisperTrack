@@ -3,6 +3,10 @@ import json
 from datetime import datetime
 from shutil import copy2
 
+import numpy as np
+import scipy as sp
+import scipy.ndimage
+
 import h5py
 
 from dispertrack import config_path, home_path
@@ -12,6 +16,9 @@ from dispertrack.model.exceptions import WrongDataFormat
 class AnalyzeWaterfall:
     def __init__(self):
         self.waterfall = None
+        self.bkg = None
+        self.corrected_data = None
+
         self.metadata = {
             'start_frame': None,
             'end_frame': None,
@@ -65,6 +72,17 @@ class AnalyzeWaterfall:
         if self.waterfall is None:
             return
         self.waterfall = self.waterfall.T
+
+    def crop_waterfall(self, start, stop):
+        """ Selects the range of frames that will be analyzed, this is handy to remove unwanted data from memory and
+        it helps speed up the GUI.
+        """
+        print(start, stop)
+        self.waterfall = self.waterfall[:, start:stop]
+
+    def calculate_background(self, axis=1, sigma=25):
+        self.bkg = sp.ndimage.gaussian_filter1d(self.waterfall, axis=axis, sigma=sigma)
+        self.corrected_data = (self.waterfall.astype(np.float) - self.bkg).clip(0, 2 ** 16 - 1).astype(np.uint16)
 
     def finalize(self):
         with open(self.config_file_path, 'w') as f:

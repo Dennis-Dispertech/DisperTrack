@@ -1,4 +1,5 @@
 from pathlib import Path
+import numpy as np
 
 from PyQt5 import uic
 from PyQt5.QtWidgets import QDialog, QFileDialog, QMainWindow, QMessageBox
@@ -19,6 +20,8 @@ class WaterfallWindow(QMainWindow):
         self.action_transpose.triggered.connect(self.transpose_waterfall)
         self.action_setup_roi.triggered.connect(self.setup_roi_line)
         self.action_apply_roi.triggered.connect(self.display_ROI)
+        self.action_crop.triggered.connect(self.crop_waterfall)
+        self.action_background.triggered.connect(self.calculate_background)
 
         self.line_angle.textEdited.connect(self.change_line_angle)
         self.slider_angle.valueChanged.connect(self.change_slider_angle)
@@ -26,6 +29,11 @@ class WaterfallWindow(QMainWindow):
         self.waterfall_image = pg.ImageView()
 
         self.ROI_line = pg.LineROI((0, 0), (1, 0), width=2)
+
+        self.hline1 = pg.InfiniteLine(angle=0, movable=True, hoverPen={'color': "FF0", 'width': 4})
+        self.hline2 = pg.InfiniteLine(angle=0, movable=True, hoverPen={'color': "FF0", 'width': 4})
+
+        self.first_waterfall_update = True
 
         plot_layout = self.plot_widget.layout()
         plot_layout.addWidget(self.waterfall_image)
@@ -45,12 +53,35 @@ class WaterfallWindow(QMainWindow):
             mb.setDetailedText(str(e))
             mb.exec()
             return
-        self.waterfall_image.setImage(self.analyze_model.waterfall)
+
+        self.update_image(self.analyze_model.waterfall)
         self.analyze_model.contextual_data.update({'last_dir': str(file.parent)})
+
+    def update_image(self, image):
+        self.waterfall_image.setImage(image, autoLevels=True, autoRange=True)
+        self.hline1.setValue(0)
+        self.hline2.setValue(image.shape[0])
+        self.hline1.setBounds((0, image.shape[1]))
+        self.hline2.setBounds((0, image.shape[1]))
+        if self.first_waterfall_update:
+            view = self.waterfall_image.getView()
+            view.addItem(self.hline1)
+            view.addItem(self.hline2)
+            self.first_waterfall_update = False
+
+    def crop_waterfall(self):
+        x = [self.hline1.value(), self.hline2.value()]
+        x = np.sort(x).astype(np.int)
+        self.analyze_model.crop_waterfall(x[0], x[1])
+        self.update_image(self.analyze_model.waterfall)
+
+    def calculate_background(self):
+        self.analyze_model.calculate_background()
+        self.update_image(self.analyze_model.corrected_data)
 
     def transpose_waterfall(self):
         self.analyze_model.transpose_waterfall()
-        self.waterfall_image.setImage(self.analyze_model.waterfall)
+        self.update_image(self.analyze_model.waterfall)
 
     def setup_roi_line(self):
         view = self.waterfall_image.getView()

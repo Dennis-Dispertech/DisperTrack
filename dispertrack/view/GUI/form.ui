@@ -41,6 +41,13 @@
         <widget class="QLineEdit" name="line_angle"/>
        </item>
        <item>
+        <widget class="Line" name="line">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
         <spacer name="verticalSpacer">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -83,6 +90,7 @@
      <string>Waterfall</string>
     </property>
     <addaction name="action_transpose"/>
+    <addaction name="action_background"/>
     <addaction name="action_setup_roi"/>
     <addaction name="action_apply_roi"/>
    </widget>
@@ -102,8 +110,10 @@
    </attribute>
    <addaction name="action_open"/>
    <addaction name="action_transpose"/>
+   <addaction name="action_crop"/>
    <addaction name="action_setup_roi"/>
    <addaction name="action_apply_roi"/>
+   <addaction name="action_background"/>
   </widget>
   <action name="action_open">
    <property name="icon">
@@ -154,6 +164,30 @@
    </property>
    <property name="toolTip">
     <string>Show data iniside ROI</string>
+   </property>
+  </action>
+  <action name="action_background">
+   <property name="icon">
+    <iconset>
+     <normaloff>Icons/bent-blocks_erase.svg</normaloff>Icons/bent-blocks_erase.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Subtract Background</string>
+   </property>
+   <property name="toolTip">
+    <string>Remove Background</string>
+   </property>
+  </action>
+  <action name="action_crop">
+   <property name="icon">
+    <iconset>
+     <normaloff>Icons/bent-blocks_crop.svg</normaloff>Icons/bent-blocks_crop.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Crop</string>
+   </property>
+   <property name="toolTip">
+    <string>Select interesting range</string>
    </property>
   </action>
  </widget>
