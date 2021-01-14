@@ -22,6 +22,8 @@ class AnalyzeWaterfall:
         self.metadata = {
             'start_frame': None,
             'end_frame': None,
+            'bkg_axis': None,
+            'bkg_sigma': None,
             'exposure_time': None,
             'sample_description': None,
             'fps': None,
