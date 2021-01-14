@@ -108,7 +108,7 @@
   <action name="action_open">
    <property name="icon">
     <iconset>
-     <normaloff>../../../../../../Downloads/folder-open-outline.svg</normaloff>../../../../../../Downloads/folder-open-outline.svg</iconset>
+     <normaloff>Icons/folder-open-outline.svg</normaloff>Icons/folder-open-outline.svg</iconset>
    </property>
    <property name="text">
     <string>Open</string>
@@ -123,7 +123,7 @@
   <action name="action_transpose">
    <property name="icon">
     <iconset>
-     <normaloff>../../../../../../Downloads/toicon - blueprint_shuffle/blueprint_shuffle.svg</normaloff>../../../../../../Downloads/toicon - blueprint_shuffle/blueprint_shuffle.svg</iconset>
+     <normaloff>Icons/blueprint_shuffle.svg</normaloff>Icons/blueprint_shuffle.svg</iconset>
    </property>
    <property name="text">
     <string>Transpose</string>
@@ -135,7 +135,7 @@
   <action name="action_setup_roi">
    <property name="icon">
     <iconset>
-     <normaloff>../../../../../../Downloads/toicon - blueprint_guide/blueprint_guide.svg</normaloff>../../../../../../Downloads/toicon - blueprint_guide/blueprint_guide.svg</iconset>
+     <normaloff>Icons/blueprint_guide.svg</normaloff>Icons/blueprint_guide.svg</iconset>
    </property>
    <property name="text">
     <string>Setup ROI</string>
@@ -147,7 +147,7 @@
   <action name="action_apply_roi">
    <property name="icon">
     <iconset>
-     <normaloff>../../../../../../Downloads/toicon - blueprint_live/blueprint_live.svg</normaloff>../../../../../../Downloads/toicon - blueprint_live/blueprint_live.svg</iconset>
+     <normaloff>Icons/blueprint_live.svg</normaloff>Icons/blueprint_live.svg</iconset>
    </property>
    <property name="text">
     <string>Apply ROI</string>
