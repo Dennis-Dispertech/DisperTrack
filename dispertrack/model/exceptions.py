@@ -1,0 +1,2 @@
+class WrongDataFormat(Exception):
+    pass
