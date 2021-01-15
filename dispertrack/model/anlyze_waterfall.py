@@ -102,7 +102,7 @@ class AnalyzeWaterfall:
 
         return cropped_data.T
 
-    def calculate_intensities_cropped(self, data, separation=15, radius=5):
+    def calculate_intensities_cropped(self, data, separation=15, radius=5, threshold=1):
         """Calculates the intensity in each frame of a cropped image. It assumes there is
         only one particle present.
 
@@ -116,7 +116,7 @@ class AnalyzeWaterfall:
         intensities = np.zeros(frames)
         positions = np.zeros(frames)
         for i in range(frames):
-            pos = find_peaks1d(data[i, :], separation=separation, threshold=0)
+            pos = find_peaks1d(data[i, :], separation=separation, threshold=threshold)
             pos = refine_positions(data[i, :], pos, radius)
             if len(pos) != 1: continue
             intensities[i] = pos[0][1]
