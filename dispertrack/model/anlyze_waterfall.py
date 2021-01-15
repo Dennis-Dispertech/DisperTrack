@@ -86,6 +86,21 @@ class AnalyzeWaterfall:
         self.bkg = sp.ndimage.gaussian_filter1d(self.waterfall, axis=axis, sigma=sigma)
         self.corrected_data = (self.waterfall.astype(np.float) - self.bkg).clip(0, 2 ** 16 - 1).astype(np.uint16)
 
+    def calculate_slice(self, start, stop, width):
+        data = self.corrected_data if self.corrected_data is not None else self.waterfall
+        slope = -data.shape[0]/(stop-start)
+        offset = data.shape[0]
+        cropped_data = np.zeros((2*width, stop-start))
+        for i in range(stop-start):
+            center = int(i*slope) + offset
+            if width > center: continue
+            if center > data.shape[0] - width: continue
+            d = data[center-width:center+width, start+i]
+            cropped_data[:, i] = d
+
+        return cropped_data.T
+
+
     def finalize(self):
         with open(self.config_file_path, 'w') as f:
             json.dump(self.contextual_data, f)
