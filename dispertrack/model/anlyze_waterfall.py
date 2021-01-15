@@ -100,7 +100,8 @@ class AnalyzeWaterfall:
 
         return cropped_data.T
 
-
     def finalize(self):
         with open(self.config_file_path, 'w') as f:
             json.dump(self.contextual_data, f)
+        if self.file is not None:
+            self.file.close()
