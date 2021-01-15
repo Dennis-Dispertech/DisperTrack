@@ -11,6 +11,8 @@ import h5py
 
 from dispertrack import config_path, home_path
 from dispertrack.model.exceptions import WrongDataFormat
+from dispertrack.model.find import find_peaks1d
+from dispertrack.model.refine import refine_positions
 
 
 class AnalyzeWaterfall:
@@ -99,6 +101,28 @@ class AnalyzeWaterfall:
             cropped_data[:, i] = d
 
         return cropped_data.T
+
+    def calculate_intensities_cropped(self, data, separation=15, radius=5):
+        """Calculates the intensity in each frame of a cropped image. It assumes there is
+        only one particle present.
+
+        Parameters
+        ----------
+        data : numpy.array
+            It should be a rectangular image, resulting from cropping the waterfall around a bright peak.
+        """
+
+        frames = np.max(data.shape)
+        intensities = np.zeros(frames)
+        positions = np.zeros(frames)
+        for i in range(frames):
+            pos = find_peaks1d(data[i, :], separation=separation, threshold=0)
+            pos = refine_positions(data[i, :], pos, radius)
+            if len(pos) != 1: continue
+            intensities[i] = pos[0][1]
+            positions[i] = pos[0][0]
+
+        return intensities, positions
 
     def finalize(self):
         with open(self.config_file_path, 'w') as f:

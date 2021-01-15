@@ -31,6 +31,7 @@ class WaterfallWindow(QMainWindow):
         self.slider_angle.valueChanged.connect(self.change_slider_angle)
 
         self.waterfall_image = pg.ImageView()
+        self.waterfall_image.setPredefinedGradient('thermal')
 
         self.ROI_line = None
 
@@ -71,7 +72,7 @@ class WaterfallWindow(QMainWindow):
             self.line_bkg.setText('')
 
     def update_image(self, image):
-        self.waterfall_image.setImage(image, autoLevels=True, autoRange=True)
+        self.waterfall_image.setImage(image)
         self.hline1.setValue(0)
         self.hline2.setValue(image.shape[0])
         self.hline1.setBounds((0, image.shape[1]))
@@ -83,6 +84,9 @@ class WaterfallWindow(QMainWindow):
             self.first_waterfall_update = False
         if self.ROI_line is None:
             self.ROI_line = pg.LineSegmentROI((0, 0), (image.shape[1], 0))
+
+        self.waterfall_image.autoRange()
+        self.waterfall_image.autoLevels()
 
     def crop_waterfall(self):
         x = [self.hline1.value(), self.hline2.value()]

@@ -11,7 +11,10 @@ def refine_positions(image, coords, radius, max_iterations=2, threshold=1):
     for feat, coord in enumerate(coords):
         for iteration in range(max_iterations):
             norm = np.sum(image[coord-radius:coord+radius+1])
-            weight = np.sum(x*image[coord-radius:coord+radius+1], dtype=np.float64)
+            try:
+                weight = np.sum(x*image[coord-radius:coord+radius+1], dtype=np.float64)
+            except ValueError:
+                raise ValueError(f'Cant calculate weight if coord is {coord} and radius is {radius}')
             cm_n = weight/norm
             cm_i = coord + cm_n
 
