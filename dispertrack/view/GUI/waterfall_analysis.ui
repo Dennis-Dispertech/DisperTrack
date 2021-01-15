@@ -101,6 +101,9 @@ padding: 0;
          <property name="toolTip">
           <string>Background sigma</string>
          </property>
+         <property name="text">
+          <string>50</string>
+         </property>
          <property name="cursorMoveStyle">
           <enum>Qt::VisualMoveStyle</enum>
          </property>
@@ -175,9 +178,9 @@ QToolButton:pressed {background-color:darkgray}
    <addaction name="action_open"/>
    <addaction name="action_transpose"/>
    <addaction name="action_crop"/>
+   <addaction name="action_background"/>
    <addaction name="action_setup_roi"/>
    <addaction name="action_apply_roi"/>
-   <addaction name="action_background"/>
   </widget>
   <action name="action_open">
    <property name="icon">
