@@ -12,6 +12,8 @@ from dispertrack.view import view_folder
 
 import pyqtgraph as pg
 
+from dispertrack.view.particle_window import ParticleWindow
+
 
 class WaterfallWindow(QMainWindow):
     def __init__(self):
@@ -30,12 +32,14 @@ class WaterfallWindow(QMainWindow):
 
         self.waterfall_image = pg.ImageView()
 
-        self.ROI_line = pg.LineROI((0, 0), (1, 0), width=2)
+        self.ROI_line = None
 
         self.hline1 = pg.InfiniteLine(angle=0, movable=True, hoverPen={'color': "FF0", 'width': 4})
         self.hline2 = pg.InfiniteLine(angle=0, movable=True, hoverPen={'color': "FF0", 'width': 4})
 
         self.first_waterfall_update = True
+
+        self.particle_windows = []
 
         plot_layout = self.plot_widget.layout()
         plot_layout.addWidget(self.waterfall_image)
@@ -77,6 +81,8 @@ class WaterfallWindow(QMainWindow):
             view.addItem(self.hline1)
             view.addItem(self.hline2)
             self.first_waterfall_update = False
+        if self.ROI_line is None:
+            self.ROI_line = pg.LineSegmentROI((0, 0), (image.shape[1], 0))
 
     def crop_waterfall(self):
         x = [self.hline1.value(), self.hline2.value()]
@@ -113,8 +119,10 @@ class WaterfallWindow(QMainWindow):
         view.addItem(self.ROI_line)
 
     def display_ROI(self):
-        data = self.ROI_line.getArrayRegion(self.analyze_model.waterfall, self.waterfall_image.getImageItem())
-        self.waterfall_image.setImage(data)
+        slice = self.ROI_line.getArraySlice(self.analyze_model.waterfall, self.waterfall_image.getImageItem())
+
+        self.particle_windows.append(ParticleWindow(self.analyze_model, slice[0][1]))
+        self.particle_windows[-1].show()
 
     def change_slider_angle(self, value):
         self.line_angle.setText(str(value))
