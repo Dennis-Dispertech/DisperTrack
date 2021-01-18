@@ -137,7 +137,7 @@ class AnalyzeWaterfall:
 
         return intensities, positions
 
-    def save_particle_data(self, data, metadata, particle_num = None):
+    def save_particle_data(self, data, metadata, particle_num=None):
         """ Save the particle data to the same file from which the waterfall was taken. The data to be saved is a 2D
         array that contains the position and intensity at each frame, or 0 if no information is available (for
         instance if the peak was not detected. Metadata stores the parameters needed to re-acquire the same data,
@@ -157,7 +157,7 @@ class AnalyzeWaterfall:
             pcle.create_dataset('metadata', data=json.dumps(metadata))
             return pcle_num
         else:
-            if particle_num not in particles.keys():
+            if str(particle_num) not in particles.keys():
                 raise ValueError('That particle does not exist in the waterfall file')
             del particles[str(particle_num)]
             pcle = particles.create_group(str(particle_num))

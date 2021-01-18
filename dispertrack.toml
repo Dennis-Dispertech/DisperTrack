@@ -1,0 +1,10 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[metadata]
+name = DisperTrack
+version = 1.0
+
+[options]
+packages = dispertrack
