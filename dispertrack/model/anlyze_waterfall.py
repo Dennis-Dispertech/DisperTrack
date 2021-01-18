@@ -55,19 +55,15 @@ class AnalyzeWaterfall:
 
     def load_waterfall(self, filename, mode='a'):
         file = h5py.File(filename, mode=mode)
-        if 'waterfall' in file.keys():
-            self.waterfall = file['waterfall'][()]
-        else:
-            for group in file.keys():
-                if 'waterfall' in file[group]:
-                    self.waterfall = file[group]['waterfall'][()]
-                    break
-            else:
-                raise WrongDataFormat(f'The selected file {filename.name} does not contain waterfall data')
+        self.waterfall = self.find_waterfall(file).T
 
         for key in self.metadata.keys():
             if key in file.keys():
                 self.metadata[key] = file[key][()]
+
+        self.contextual_data.update({
+            'last_file': str(filename),
+            })
 
         if mode == 'a':
             self.file = file
@@ -77,12 +73,29 @@ class AnalyzeWaterfall:
             return
         self.waterfall = self.waterfall.T
 
+    @staticmethod
+    def find_waterfall(file):
+        """ Find and retrieve the waterfall in a given opened HDF5 file"""
+        if 'waterfall' in file.keys():
+            return file['waterfall'][()]
+        else:
+            for group in file.keys():
+                if 'waterfall' in file[group]:
+                    return file[group]['waterfall'][()]
+            else:
+                raise WrongDataFormat(f'The selected file {file} does not contain waterfall data')
+
+    def clear_crop(self):
+        if self.file is not None:
+            self.waterfall = self.find_waterfall(self.file).T
+
     def crop_waterfall(self, start, stop):
         """ Selects the range of frames that will be analyzed, this is handy to remove unwanted data from memory and
         it helps speed up the GUI.
         """
-        print(start, stop)
         self.waterfall = self.waterfall[:, start:stop]
+        self.metadata['start_frame'] = start
+        self.metadata['end_frame'] = stop
 
     def calculate_background(self, axis=1, sigma=25):
         self.bkg = sp.ndimage.gaussian_filter1d(self.waterfall, axis=axis, sigma=sigma)
@@ -124,8 +137,41 @@ class AnalyzeWaterfall:
 
         return intensities, positions
 
+    def save_particle_data(self, data, metadata, particle_num = None):
+        """ Save the particle data to the same file from which the waterfall was taken. The data to be saved is a 2D
+        array that contains the position and intensity at each frame, or 0 if no information is available (for
+        instance if the peak was not detected. Metadata stores the parameters needed to re-acquire the same data,
+        such as start, stop frames, width, threshold, separation and radius. Especially start stop and width allow to
+        reconstruct the absolut position of the particle in the waterfall (to characterize size based on diffusion).
+        """
+
+        # Check if the file already has information on particle
+        if not 'particles' in self.file.keys():
+            self.file.create_group('particles')
+
+        particles = self.file['particles']
+        if particle_num is None:
+            pcle_num = len(particles.keys())
+            pcle = particles.create_group(str(pcle_num))
+            pcle.create_dataset('data', data=data)
+            pcle.create_dataset('metadata', data=json.dumps(metadata))
+            return pcle_num
+        else:
+            if particle_num not in particles.keys():
+                raise ValueError('That particle does not exist in the waterfall file')
+            del particles[str(particle_num)]
+            pcle = particles.create_group(str(particle_num))
+            pcle.create_dataset('data', data=data)
+            pcle.create_dataset('metadata', data=json.dumps(metadata))
+            return particle_num
+
     def finalize(self):
         with open(self.config_file_path, 'w') as f:
             json.dump(self.contextual_data, f)
         if self.file is not None:
+            for key, value in self.metadata.items():
+                if key in self.file.keys():
+                    del self.file[key]
+                if value is not None:
+                    self.file.create_dataset(key, data=value)
             self.file.close()

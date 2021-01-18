@@ -29,7 +29,7 @@ margin: 0;
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
     <item row="2" column="1">
-     <widget class="QWidget" name="widget_intensity" native="true">
+     <widget class="PlotWidget" name="widget_intensity" native="true">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
         <horstretch>10</horstretch>
@@ -40,7 +40,7 @@ margin: 0;
      </widget>
     </item>
     <item row="0" column="1">
-     <widget class="QWidget" name="widget_image" native="true">
+     <widget class="ImageView" name="widget_image" native="true">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
         <horstretch>10</horstretch>
@@ -62,7 +62,7 @@ margin: 0;
      </widget>
     </item>
     <item row="1" column="1">
-     <widget class="QWidget" name="widget_position" native="true">
+     <widget class="PlotWidget" name="widget_position" native="true">
       <property name="sizePolicy">
        <sizepolicy hsizetype="MinimumExpanding" vsizetype="Expanding">
         <horstretch>10</horstretch>
@@ -238,6 +238,12 @@ margin: 0;
  <customwidgets>
   <customwidget>
    <class>PlotWidget</class>
+   <extends>QWidget</extends>
+   <header>pyqtgraph</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ImageView</class>
    <extends>QWidget</extends>
    <header>pyqtgraph</header>
    <container>1</container>

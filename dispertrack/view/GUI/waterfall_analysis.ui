@@ -46,19 +46,50 @@ padding: 0;
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_2">
        <item>
-        <widget class="QSlider" name="slider_angle">
-         <property name="maximum">
-          <number>359</number>
+        <widget class="QLabel" name="label_2">
+         <property name="styleSheet">
+          <string notr="true">QLabel { 
+font-size: 15px;
+font-weight: bold;
+}</string>
          </property>
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
+         <property name="text">
+          <string>ROI</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="line_angle">
-         <property name="styleSheet">
-          <string notr="true"/>
+        <widget class="QLabel" name="label_3">
+         <property name="text">
+          <string>Start</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="line_start_frame">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_4">
+         <property name="text">
+          <string>End</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="line_end_frame">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="button_clear_roi">
+         <property name="text">
+          <string>Clear</string>
          </property>
         </widget>
        </item>
@@ -72,10 +103,20 @@ padding: 0;
        <item>
         <widget class="QLabel" name="label">
          <property name="styleSheet">
-          <string notr="true"/>
+          <string notr="true">QLabel { 
+font-size: 15px;
+font-weight: bold;
+}</string>
          </property>
          <property name="text">
           <string>Background</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_5">
+         <property name="text">
+          <string>Axis</string>
          </property>
         </widget>
        </item>
@@ -94,6 +135,13 @@ padding: 0;
            <string>2</string>
           </property>
          </item>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_6">
+         <property name="text">
+          <string>Sigma</string>
+         </property>
         </widget>
        </item>
        <item>

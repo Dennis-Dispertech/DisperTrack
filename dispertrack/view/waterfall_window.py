@@ -4,6 +4,7 @@ from threading import Thread
 import numpy as np
 
 from PyQt5 import uic
+from PyQt5.QtCore import QRect
 from PyQt5.QtWidgets import QDialog, QFileDialog, QMainWindow, QMessageBox
 
 from dispertrack import home_path
@@ -27,8 +28,7 @@ class WaterfallWindow(QMainWindow):
         self.action_crop.triggered.connect(self.crop_waterfall)
         self.action_background.triggered.connect(self.calculate_background)
 
-        self.line_angle.textEdited.connect(self.change_line_angle)
-        self.slider_angle.valueChanged.connect(self.change_slider_angle)
+        self.button_clear_roi.clicked.connect(self.clear_crop)
 
         self.waterfall_image = pg.ImageView()
         self.waterfall_image.setPredefinedGradient('thermal')
@@ -71,10 +71,22 @@ class WaterfallWindow(QMainWindow):
         else:
             self.line_bkg.setText('')
 
+        if (start_frame := self.analyze_model.metadata['start_frame']) is not None:
+            self.line_start_frame.setText(str(start_frame))
+            self.hline1.setValue(int(start_frame))
+        else:
+            self.line_start_frame.setText('')
+
+        if (end_frame := self.analyze_model.metadata['end_frame']) is not None:
+            self.line_end_frame.setText(str(end_frame))
+            self.hline2.setValue((int(end_frame)))
+        else:
+            self.line_end_frame.setText('')
+
     def update_image(self, image):
         self.waterfall_image.setImage(image)
         self.hline1.setValue(0)
-        self.hline2.setValue(image.shape[0])
+        self.hline2.setValue(image.shape[1])
         self.hline1.setBounds((0, image.shape[1]))
         self.hline2.setBounds((0, image.shape[1]))
         if self.first_waterfall_update:
@@ -83,16 +95,23 @@ class WaterfallWindow(QMainWindow):
             view.addItem(self.hline2)
             self.first_waterfall_update = False
         if self.ROI_line is None:
-            self.ROI_line = pg.LineSegmentROI((0, 0), (image.shape[1], 0))
+            self.ROI_line = pg.LineSegmentROI([(0, 0), (image.shape[0], 0)], maxBounds=QRect(0, 0, image.shape[1],
+                                                                                             image.shape[0]))
 
         self.waterfall_image.autoRange()
         self.waterfall_image.autoLevels()
+
+    def clear_crop(self):
+        self.analyze_model.clear_crop()
+        self.update_image(self.analyze_model.waterfall)
 
     def crop_waterfall(self):
         x = [self.hline1.value(), self.hline2.value()]
         x = np.sort(x).astype(np.int)
         self.analyze_model.crop_waterfall(x[0], x[1])
         self.update_image(self.analyze_model.waterfall)
+        self.line_start_frame.setText(str(x[0]))
+        self.line_end_frame.setText(str(x[1]))
 
     def calculate_background(self):
         def calculate_bkg_thread(self, axis, sigma):
@@ -106,7 +125,7 @@ class WaterfallWindow(QMainWindow):
             self.statusbar.showMessage('')
 
         axis = int(self.combo_bkg_axis.currentIndex())
-        if sigma := self.line_bkg.text() != '':
+        if (sigma := self.line_bkg.text()) != '':
             sigma = int(sigma)
         else:
             sigma = None
@@ -127,15 +146,6 @@ class WaterfallWindow(QMainWindow):
 
         self.particle_windows.append(ParticleWindow(self.analyze_model, slice[0][1]))
         self.particle_windows[-1].show()
-
-    def change_slider_angle(self, value):
-        self.line_angle.setText(str(value))
-        self.ROI_line.setAngle(value)
-
-    def change_line_angle(self, value):
-        self.slider_angle.setValue(int(value))
-        self.ROI_line.setAngle(int(value))
-
 
 if __name__ == '__main__':
     from PyQt5.QtWidgets import QApplication
