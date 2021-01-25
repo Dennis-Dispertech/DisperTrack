@@ -9,7 +9,7 @@ import scipy.ndimage
 
 import h5py
 
-from dispertrack import config_path, home_path
+from dispertrack import config_path
 from dispertrack.model.exceptions import WrongDataFormat
 from dispertrack.model.find import find_peaks1d
 from dispertrack.model.refine import refine_positions
