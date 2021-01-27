@@ -1,5 +1,6 @@
 import atexit
 import json
+import pickle
 from datetime import datetime
 from shutil import copy2
 
@@ -27,7 +28,7 @@ class AnalyzeWaterfall:
         self.bkg = None
         self.corrected_data = None
         self.mask = None
-
+        self.filtered_props = []
 
         self.metadata = {
             'start_frame': None,
@@ -37,6 +38,10 @@ class AnalyzeWaterfall:
             'exposure_time': None,
             'sample_description': None,
             'fps': None,
+            'mask_threshold': None,
+            'mask_max_gap': None,
+            'mask_min_size': None,
+            'mask_min_length': None,
             }
         self.file = None
 
@@ -76,6 +81,16 @@ class AnalyzeWaterfall:
 
         if mode == 'a':
             self.file = file
+
+    def load_mask(self):
+        if 'mask' in self.file.keys():
+            self.mask = self.file['mask']['mask'][()]
+            self.filtered_props = []
+
+            for i in self.file['mask']['props'].keys():
+                self.filtered_props.append(self.file['mask']['props'][i][()])
+        else:
+            Warning('Trying to load mask but the file does not specify one')
 
     def transpose_waterfall(self):
         if self.waterfall is None:
@@ -142,14 +157,13 @@ class AnalyzeWaterfall:
 
         return cropped_data.T
 
-    def calculate_slice_from_label(self, props, width=25):
+    def calculate_slice_from_label(self, coord, width=25):
         """ Given a set of pixels as tose returned by regionprops, return the data around the center pixel.
         This method complements :meth:~calculate_slice and can be used with the resulting properties from
         :meth:~label_mask
         """
         data = self.corrected_data if self.corrected_data is not None else self.waterfall
 
-        coord = props.coords[:, :]
         min_frame = np.min(coord[:, 1])
         max_frame = np.max(coord[:, 1])
         cropped_data = np.zeros((2*width+1, max_frame-min_frame))
@@ -209,9 +223,11 @@ class AnalyzeWaterfall:
         MSD = pd.DataFrame(msd_iter(position, lagtimes=lagtimes), columns=['MD', 'MSD'], index=lagtimes)
         return MSD
 
-
-
     def calculate_mask(self, threshold, min_size=0, max_gap=0):
+        self.metadata['mask_threshold'] = threshold
+        self.metadata['mask_min_size'] = min_size
+        self.metadata['mask_max_gap'] = min_size
+
         self.mask = self.corrected_data > threshold
         if min_size > 0:
             self.mask = morphology.remove_small_objects(self.mask, min_size)
@@ -222,13 +238,15 @@ class AnalyzeWaterfall:
     def label_mask(self, min_len=100):
         """ Label the mask and remove those tracks that have fewer than a minimum number of frames in them.
         """
+        self.metadata['mask_min_length'] = min_len
+
         labels = measure.label(self.mask, background=False)
         props = measure.regionprops(labels, intensity_image=self.corrected_data)
 
         filtered_props = []
         for p in props:
             if np.max(p.coords[:, 1]) - np.min(p.coords[:, 1]) >= min_len:
-                filtered_props.append(p)
+                filtered_props.append(p.coords)
 
         self.filtered_props = filtered_props
 
@@ -269,4 +287,12 @@ class AnalyzeWaterfall:
                     del self.file[key]
                 if value is not None:
                     self.file.create_dataset(key, data=value)
+
+            if self.mask is not None:
+                if 'mask' in self.file.keys():
+                    del self.file['mask']
+
+                self.file.create_group('mask')
+                self.file['mask'].create_dataset('mask', data=self.mask)
+
             self.file.close()

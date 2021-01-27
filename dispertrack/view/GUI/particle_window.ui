@@ -83,7 +83,8 @@ QCheckBox::indicator:unchecked:hover,
 QGroupBox::indicator:unchecked,
 QGroupBox::indicator:unchecked:hover
 {
-    image: url(:/dark_blue/img/checkbox_unchecked.png);
+    /*image: url(:/dark_blue/img/checkbox_unchecked.png);*/
+    image: url(:/Icons/Icons/checkbox_unchecked.svg);
 }
 
 QCheckBox::indicator:unchecked:focus,
@@ -92,7 +93,7 @@ QGroupBox::indicator:unchecked:focus,
 QGroupBox::indicator:unchecked:pressed
 {
   border: none;
-    image: url(:/dark_blue/img/checkbox_unchecked_focus.png);
+  image: url(:/Icons/Icons/checkbox_unchecked_focus.svg);
 }
 
 QCheckBox::indicator:checked,
@@ -100,7 +101,7 @@ QCheckBox::indicator:checked:hover,
 QGroupBox::indicator:checked,
 QGroupBox::indicator:checked:hover
 {
-    image: url(:/dark_blue/img/checkbox_checked.png);
+    image: url(:/Icons/Icons/checkbox_checked.svg);
 }
 
 QCheckBox::indicator:checked:focus,
@@ -109,7 +110,7 @@ QGroupBox::indicator:checked:focus,
 QGroupBox::indicator:checked:pressed
 {
   border: none;
-    image: url(:/dark_blue/img/checkbox_checked_focus.png);
+  image: url(:/Icons/Icons/checkbox_checked_focus.svg);
 }
 
 QCheckBox::indicator:indeterminate,
@@ -1518,6 +1519,16 @@ ColorButton::disabled {
        </item>
        <item>
         <widget class="QCheckBox" name="check_valid">
+         <property name="styleSheet">
+          <string notr="true">indicator {
+    width: 13px;
+    height: 13px;
+}
+
+border{
+    color: red;
+}</string>
+         </property>
          <property name="text">
           <string>Valid?</string>
          </property>
@@ -1550,7 +1561,7 @@ ColorButton::disabled {
      <x>0</x>
      <y>0</y>
      <width>980</width>
-     <height>22</height>
+     <height>24</height>
     </rect>
    </property>
   </widget>

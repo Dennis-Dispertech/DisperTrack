@@ -83,7 +83,8 @@ QCheckBox::indicator:unchecked:hover,
 QGroupBox::indicator:unchecked,
 QGroupBox::indicator:unchecked:hover
 {
-    image: url(:/dark_blue/img/checkbox_unchecked.png);
+    /*image: url(:/dark_blue/img/checkbox_unchecked.png);*/
+    image: url(:/Icons/Icons/checkbox_unchecked.svg);
 }
 
 QCheckBox::indicator:unchecked:focus,
@@ -92,7 +93,7 @@ QGroupBox::indicator:unchecked:focus,
 QGroupBox::indicator:unchecked:pressed
 {
   border: none;
-    image: url(:/dark_blue/img/checkbox_unchecked_focus.png);
+  image: url(:/Icons/Icons/checkbox_unchecked_focus.svg);
 }
 
 QCheckBox::indicator:checked,
@@ -100,7 +101,7 @@ QCheckBox::indicator:checked:hover,
 QGroupBox::indicator:checked,
 QGroupBox::indicator:checked:hover
 {
-    image: url(:/dark_blue/img/checkbox_checked.png);
+    image: url(:/Icons/Icons/checkbox_checked.svg);
 }
 
 QCheckBox::indicator:checked:focus,
@@ -109,7 +110,7 @@ QGroupBox::indicator:checked:focus,
 QGroupBox::indicator:checked:pressed
 {
   border: none;
-    image: url(:/dark_blue/img/checkbox_checked_focus.png);
+  image: url(:/Icons/Icons/checkbox_checked_focus.svg);
 }
 
 QCheckBox::indicator:indeterminate,
@@ -1506,7 +1507,7 @@ font-weight: bold;
      <x>0</x>
      <y>0</y>
      <width>1233</width>
-     <height>22</height>
+     <height>24</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -1523,6 +1524,7 @@ font-weight: bold;
     <addaction name="action_background"/>
     <addaction name="action_setup_roi"/>
     <addaction name="action_apply_roi"/>
+    <addaction name="action_load_mask"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuWaterfall"/>
@@ -1665,6 +1667,14 @@ QToolButton:pressed {background-color:darkgray}
    </property>
    <property name="toolTip">
     <string>Show Labelled Particles</string>
+   </property>
+  </action>
+  <action name="action_load_mask">
+   <property name="text">
+    <string>Load Mask</string>
+   </property>
+   <property name="toolTip">
+    <string>Load mask from file</string>
    </property>
   </action>
  </widget>

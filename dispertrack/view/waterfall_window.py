@@ -15,6 +15,7 @@ import pyqtgraph as pg
 
 from dispertrack.view.particle_window import ParticleWindow
 
+import dispertrack.view.GUI.resources_rc
 
 class WaterfallWindow(QMainWindow):
     def __init__(self):
@@ -30,6 +31,7 @@ class WaterfallWindow(QMainWindow):
         self.action_denoise.triggered.connect(self.denoise_image)
         self.action_create_mask.triggered.connect(self.calculate_mask)
         self.action_show_labels.triggered.connect(self.display_labels)
+        self.action_load_mask.triggered.connect(self.load_mask)
 
         self.button_clear_roi.clicked.connect(self.clear_crop)
         self.button_show_mask.clicked.connect(self.toggle_show_mask)
@@ -88,6 +90,17 @@ class WaterfallWindow(QMainWindow):
             self.hline2.setValue((int(end_frame)))
         else:
             self.line_end_frame.setText('')
+
+    def load_mask(self):
+        try:
+            self.analyze_model.load_mask()
+            self.update_image(self.analyze_model.mask)
+        except Exception as e:
+            mb = QMessageBox(self)
+            mb.setText('Something went wrong loading the mask')
+            mb.setDetailedText(str(e))
+            mb.exec()
+            return
 
     def update_image(self, image):
         self.waterfall_image.setImage(image)
