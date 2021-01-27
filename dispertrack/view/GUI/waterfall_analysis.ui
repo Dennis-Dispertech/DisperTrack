@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>878</width>
-    <height>744</height>
+    <width>1233</width>
+    <height>829</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -1292,6 +1292,9 @@ font-weight: bold;
          <property name="text">
           <string>Start</string>
          </property>
+         <property name="buddy">
+          <cstring>line_start_frame</cstring>
+         </property>
         </widget>
        </item>
        <item>
@@ -1305,6 +1308,9 @@ font-weight: bold;
         <widget class="QLabel" name="label_4">
          <property name="text">
           <string>End</string>
+         </property>
+         <property name="buddy">
+          <cstring>line_end_frame</cstring>
          </property>
         </widget>
        </item>
@@ -1347,6 +1353,9 @@ font-weight: bold;
          <property name="text">
           <string>Axis</string>
          </property>
+         <property name="buddy">
+          <cstring>combo_bkg_axis</cstring>
+         </property>
         </widget>
        </item>
        <item>
@@ -1371,6 +1380,9 @@ font-weight: bold;
          <property name="text">
           <string>Sigma</string>
          </property>
+         <property name="buddy">
+          <cstring>line_bkg</cstring>
+         </property>
         </widget>
        </item>
        <item>
@@ -1383,6 +1395,85 @@ font-weight: bold;
          </property>
          <property name="cursorMoveStyle">
           <enum>Qt::VisualMoveStyle</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="Line" name="line_2">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_7">
+         <property name="styleSheet">
+          <string notr="true">QLabel { 
+font-size: 15px;
+font-weight: bold;
+}</string>
+         </property>
+         <property name="text">
+          <string>Mask</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_8">
+         <property name="text">
+          <string>Threshold</string>
+         </property>
+         <property name="buddy">
+          <cstring>line_mask_threshold</cstring>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="line_mask_threshold"/>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_9">
+         <property name="text">
+          <string>Max Gap</string>
+         </property>
+         <property name="buddy">
+          <cstring>line_mask_max_gap</cstring>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="line_mask_max_gap"/>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_10">
+         <property name="text">
+          <string>Min Size</string>
+         </property>
+         <property name="buddy">
+          <cstring>line_mask_min_size</cstring>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="line_mask_min_size"/>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_11">
+         <property name="text">
+          <string>Min Length</string>
+         </property>
+         <property name="buddy">
+          <cstring>line_mask_min_len</cstring>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="line_mask_min_len"/>
+       </item>
+       <item>
+        <widget class="QPushButton" name="button_show_mask">
+         <property name="text">
+          <string>Show Mask</string>
          </property>
         </widget>
        </item>
@@ -1414,8 +1505,8 @@ font-weight: bold;
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>878</width>
-     <height>24</height>
+     <width>1233</width>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -1456,6 +1547,9 @@ QToolButton:pressed {background-color:darkgray}
    <addaction name="action_transpose"/>
    <addaction name="action_crop"/>
    <addaction name="action_background"/>
+   <addaction name="action_denoise"/>
+   <addaction name="action_create_mask"/>
+   <addaction name="action_show_labels"/>
    <addaction name="action_setup_roi"/>
    <addaction name="action_apply_roi"/>
   </widget>
@@ -1532,6 +1626,45 @@ QToolButton:pressed {background-color:darkgray}
    </property>
    <property name="toolTip">
     <string>Select interesting range</string>
+   </property>
+  </action>
+  <action name="action_denoise">
+   <property name="icon">
+    <iconset>
+     <normaloff>Icons/blueprint_strain.svg</normaloff>Icons/blueprint_strain.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Denoise</string>
+   </property>
+   <property name="toolTip">
+    <string>Denois data with a 1-pixel Gaussian</string>
+   </property>
+  </action>
+  <action name="action_create_mask">
+   <property name="icon">
+    <iconset>
+     <normaloff>Icons/afiado_weld.svg</normaloff>Icons/afiado_weld.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Mask</string>
+   </property>
+   <property name="toolTip">
+    <string>Create binary mask of data</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+M</string>
+   </property>
+  </action>
+  <action name="action_show_labels">
+   <property name="icon">
+    <iconset>
+     <normaloff>Icons/afiado_find.svg</normaloff>Icons/afiado_find.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Explore labelled particles</string>
+   </property>
+   <property name="toolTip">
+    <string>Show Labelled Particles</string>
    </property>
   </action>
  </widget>

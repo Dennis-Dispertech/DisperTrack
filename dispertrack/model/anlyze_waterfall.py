@@ -7,12 +7,18 @@ import numpy as np
 import scipy as sp
 import scipy.ndimage
 
+import pandas as pd
+
 import h5py
+from scipy.ndimage import correlate1d
+from skimage import measure, morphology
 
 from dispertrack import config_path
+from dispertrack.model.displacement import msd_iter
 from dispertrack.model.exceptions import WrongDataFormat
 from dispertrack.model.find import find_peaks1d
 from dispertrack.model.refine import refine_positions
+from dispertrack.model.util import gaussian_kernel
 
 
 class AnalyzeWaterfall:
@@ -20,6 +26,8 @@ class AnalyzeWaterfall:
         self.waterfall = None
         self.bkg = None
         self.corrected_data = None
+        self.mask = None
+
 
         self.metadata = {
             'start_frame': None,
@@ -55,7 +63,8 @@ class AnalyzeWaterfall:
 
     def load_waterfall(self, filename, mode='a'):
         file = h5py.File(filename, mode=mode)
-        self.waterfall = self.find_waterfall(file).T
+        path = file.visit(self.find_waterfall)
+        self.waterfall = file[path][()].T
 
         for key in self.metadata.keys():
             if key in file.keys():
@@ -74,20 +83,16 @@ class AnalyzeWaterfall:
         self.waterfall = self.waterfall.T
 
     @staticmethod
-    def find_waterfall(file):
-        """ Find and retrieve the waterfall in a given opened HDF5 file"""
-        if 'waterfall' in file.keys():
-            return file['waterfall'][()]
-        else:
-            for group in file.keys():
-                if 'waterfall' in file[group]:
-                    return file[group]['waterfall'][()]
-            else:
-                raise WrongDataFormat(f'The selected file {file} does not contain waterfall data')
+    def find_waterfall(name):
+        """ Callable to use with HDF visit method. It returns the first element it encounters with the text waterfall.
+        """
+        if 'waterfall' in name:
+            return name
 
     def clear_crop(self):
         if self.file is not None:
-            self.waterfall = self.find_waterfall(self.file).T
+            path = self.file.visit(self.find_waterfall)
+            self.waterfall = self.file[path][()].T
 
     def crop_waterfall(self, start, stop):
         """ Selects the range of frames that will be analyzed, this is handy to remove unwanted data from memory and
@@ -101,17 +106,66 @@ class AnalyzeWaterfall:
         self.bkg = sp.ndimage.gaussian_filter1d(self.waterfall, axis=axis, sigma=sigma)
         self.corrected_data = (self.waterfall.astype(np.float) - self.bkg).clip(0, 2 ** 16 - 1).astype(np.uint16)
 
+    def denoise(self, sigma=(0, 1), truncate=4.0):
+        if self.corrected_data is not None:
+            to_denoise = self.corrected_data
+        else:
+            to_denoise = self.waterfall
+
+        result = np.array(to_denoise, dtype=np.float)
+        for axis, _sigma in enumerate(sigma):
+            if _sigma > 0:
+                correlate1d(result, gaussian_kernel(_sigma, truncate), axis, output=result, mode='constant', cval=0.0)
+        self.corrected_data = result
+
     def calculate_slice(self, start, stop, width):
+        """ Calculates the slice of data given a start and end frame with a width. It links both sides of the
+        waterfall with a straight line and calculates a sliding window accordingly.
+
+        .. warning:: This only works for getting slices across the entire image, partial slices require another approach
+        """
         data = self.corrected_data if self.corrected_data is not None else self.waterfall
         slope = -data.shape[0]/(stop-start)
         offset = data.shape[0]
-        cropped_data = np.zeros((2*width, stop-start))
+        cropped_data = np.zeros((2*width+1, stop-start))
         for i in range(stop-start):
             center = int(i*slope) + offset
-            if width > center: continue
-            if center > data.shape[0] - width: continue
+            cropped_data[0, :] = center
+            if width > center:
+                cropped_data[1:, i] = np.nan
+                continue
+            if center > data.shape[0] - width:
+                cropped_data[1:, i] = np.nan
+                continue
             d = data[center-width:center+width, start+i]
-            cropped_data[:, i] = d
+            cropped_data[1:, i] = d
+
+        return cropped_data.T
+
+    def calculate_slice_from_label(self, props, width=25):
+        """ Given a set of pixels as tose returned by regionprops, return the data around the center pixel.
+        This method complements :meth:~calculate_slice and can be used with the resulting properties from
+        :meth:~label_mask
+        """
+        data = self.corrected_data if self.corrected_data is not None else self.waterfall
+
+        coord = props.coords[:, :]
+        min_frame = np.min(coord[:, 1])
+        max_frame = np.max(coord[:, 1])
+        cropped_data = np.zeros((2*width+1, max_frame-min_frame))
+        for i, f in enumerate(range(min_frame, max_frame)):
+            pixels = coord[coord[:, 1] == f, 0]
+            if len(pixels) > 1:
+                center = np.mean(pixels).astype(np.int)
+                cropped_data[0, i] = center
+                if width > center:
+                    cropped_data[1:, i] = np.nan
+                    continue
+                if center > data.shape[0] - width:
+                    cropped_data[1:, i] = np.nan
+                    continue
+                d = data[center - width:center + width, f]
+                cropped_data[1:, i] = d
 
         return cropped_data.T
 
@@ -131,11 +185,52 @@ class AnalyzeWaterfall:
         for i in range(frames):
             pos = find_peaks1d(data[i, :], separation=separation, threshold=threshold)
             pos = refine_positions(data[i, :], pos, radius)
-            if len(pos) != 1: continue
-            intensities[i] = pos[0][1]
-            positions[i] = pos[0][0]
+            if len(pos) != 1:
+                intensities[i] = np.nan
+                positions[i] = np.nan
+            else:
+                intensities[i] = pos[0][1]
+                positions[i] = pos[0][0]
 
         return intensities, positions
+
+    def calculate_diffusion(self, center, position):
+
+        # Transform to 'absolute' position
+        position = position+center
+
+        X = np.arange(len(center))
+        fit = np.polyfit(X, center, 1)
+
+        # Remove the drift by subtracting a first-order fit to the center position.
+
+        position = position - np.polyval(fit, X)
+        lagtimes = np.arange(1, int(len(position)/2))
+        MSD = pd.DataFrame(msd_iter(position, lagtimes=lagtimes), columns=['MD', 'MSD'], index=lagtimes)
+        return MSD
+
+
+
+    def calculate_mask(self, threshold, min_size=0, max_gap=0):
+        self.mask = self.corrected_data > threshold
+        if min_size > 0:
+            self.mask = morphology.remove_small_objects(self.mask, min_size)
+
+        if max_gap > 0:
+            self.mask = morphology.remove_small_holes(self.mask, max_gap)
+
+    def label_mask(self, min_len=100):
+        """ Label the mask and remove those tracks that have fewer than a minimum number of frames in them.
+        """
+        labels = measure.label(self.mask, background=False)
+        props = measure.regionprops(labels, intensity_image=self.corrected_data)
+
+        filtered_props = []
+        for p in props:
+            if np.max(p.coords[:, 1]) - np.min(p.coords[:, 1]) >= min_len:
+                filtered_props.append(p)
+
+        self.filtered_props = filtered_props
 
     def save_particle_data(self, data, metadata, particle_num=None):
         """ Save the particle data to the same file from which the waterfall was taken. The data to be saved is a 2D

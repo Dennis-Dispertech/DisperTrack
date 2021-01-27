@@ -8,47 +8,103 @@ from dispertrack.view import view_folder
 
 
 class ParticleWindow(QMainWindow):
-    def __init__(self, analyze_model, slice):
+    def __init__(self, analyze_model, slice_data=None, props=None, particle_number=None):
         super().__init__()
         uic.loadUi(view_folder / 'GUI' / 'particle_window.ui', self)
+
+        if particle_number is not None:
+            self.setWindowTitle(f'Single-Particle Analysis - pcle {particle_number}')
+            self.line_current_particle.setText(str(particle_number))
+
         self.analyze_model = analyze_model
 
         self.data = None
         self.intensities = None
         self.positions = None
+        self.centers = None
 
         self.widget_image.setPredefinedGradient('thermal')
 
-        self.line_slice_start.setText(str(slice.start))
-        self.line_slice_stop.setText(str(slice.stop))
+        self.standard_slice = False
+        self.props_slice = False
 
-        self.calculate_particle_data()
+        if slice_data is not None:
+            self.line_slice_start.setText(str(slice_data.start))
+            self.line_slice_stop.setText(str(slice_data.stop))
+            self.standard_slice = True
+        elif props is not None:
+            self.props = props
+            self.line_slice_start.setText('None')
+            self.line_slice_stop.setText('None')
+            self.props_slice = True
+        else:
+            raise Exception('Either slice_data is specified or label is specified')
 
         self.button_apply.clicked.connect(self.calculate_particle_data)
         self.button_save.clicked.connect(self.save_data)
         self.slider_frames.valueChanged.connect(self.update_1d_plot)
+        self.button_next.clicked.connect(self.next_particle)
+        self.button_previous.clicked.connect(self.previous_particle)
 
         self.saved = False
+        self.particle_num = particle_number
 
-        self.particle_num = None
+        self.calculate_particle_data()
+
+    def next_particle(self):
+        if self.particle_num is None:
+            self.button_next.setEnabled(False)
+            return
+        if self.particle_num + 1 <= len(self.props):
+            self.particle_num += 1
+            self.calculate_particle_data()
+            self.setWindowTitle(f'Single-Particle Analysis - pcle {self.particle_num}')
+            self.line_current_particle.setText(str(self.particle_num))
+        else:
+            self.button_next.setEnabled(False)
+
+    def previous_particle(self):
+        if self.particle_num is None:
+            self.button_previous.setEnabled(False)
+            return
+        if self.particle_num - 1 >= 0:
+            self.particle_num -= 1
+            self.calculate_particle_data()
+            self.setWindowTitle(f'Single-Particle Analysis - pcle {self.particle_num}')
+            self.line_current_particle.setText(str(self.particle_num))
+        else:
+            self.button_previous.setEnabled(False)
 
     def calculate_particle_data(self):
         """ Calculates particle data based on some parameters such as the coordinates of the
         slice and """
-        start = int(self.line_slice_start.text())
-        stop = int(self.line_slice_stop.text())
-        (start, stop) = np.sort((start, stop))
         width = int(self.line_slice_width.text())
         separation = int(self.line_position_separation.text())
         radius = int(self.line_position_radius.text())
         threshold = int(self.line_position_threshold.text())
-        self.data = self.analyze_model.calculate_slice(start, stop, width)
+
+        if self.standard_slice:
+            start = int(self.line_slice_start.text())
+            stop = int(self.line_slice_stop.text())
+            (start, stop) = np.sort((start, stop))
+
+            sliced_data = self.analyze_model.calculate_slice(start, stop, width)
+        elif self.props_slice:
+            props = self.props[self.particle_num]
+            sliced_data = self.analyze_model.calculate_slice_from_label(props, width=width)
+        else:
+            return
+
+        self.data = sliced_data[:, 1:]
+        self.centers = sliced_data[:, 0]
+
         self.intensities, self.positions = self.analyze_model.calculate_intensities_cropped(
             self.data,
             separation=separation,
             radius=radius,
             threshold=threshold,
             )
+        self.MSD = self.analyze_model.calculate_diffusion(self.centers, self.positions)
         self.update_image()
         self.update_intensities()
         self.update_positions()
@@ -67,15 +123,30 @@ class ParticleWindow(QMainWindow):
         x = np.arange(0, len(self.positions))
         pi.plot(x[self.positions > 0], self.positions[self.positions > 0])
 
+        msd_plot = self.widget_diffusion.getPlotItem()
+        msd_plot.clear()
+        x = 5E-3*np.arange(1, int(len(self.positions)/2))
+        msd_plot.plot(x, self.MSD['MSD'].array, pen=None, symbol='o')
+        msd_plot.setLogMode(True, True)
+
     def update_intensities(self):
         pi = self.widget_intensity.getPlotItem()
         pi.clear()
-        x = np.arange(0, len(self.intensities))
-        pi.plot(x[self.intensities > 0], self.intensities[self.intensities > 0])
+        x = np.arange(0, len(self.intensities[self.intensities > 0]))
+        pi.plot(x, self.intensities[self.intensities > 0])
+
+        hi = self.widget_intensity_histogram.getPlotItem()
+        hi.clear()
+        bins = np.linspace(np.nanmin(self.intensities), np.nanmax(self.intensities), 20)
+        y, x = np.histogram(self.intensities[~np.isnan(self.intensities)], bins=bins)
+        hi.plot(x, y, stepMode=True, fillLevel=0, brush=(0, 125, 125, 150))
 
     def update_1d_plot(self, frame):
         self.widget_1d_plot.clear()
         self.widget_1d_plot.plot(self.data[frame])
+        if np.isnan(self.data[frame][round(self.positions[frame])]):
+            return
+
         self.widget_1d_plot.plot([self.positions[frame], ], [self.data[frame][round(self.positions[frame])],],
                                  symbolBrush=pg.mkBrush(0, 0, 255, 255),
                                  symbolSize=7)

@@ -27,13 +27,18 @@ class WaterfallWindow(QMainWindow):
         self.action_apply_roi.triggered.connect(self.display_ROI)
         self.action_crop.triggered.connect(self.crop_waterfall)
         self.action_background.triggered.connect(self.calculate_background)
+        self.action_denoise.triggered.connect(self.denoise_image)
+        self.action_create_mask.triggered.connect(self.calculate_mask)
+        self.action_show_labels.triggered.connect(self.display_labels)
 
         self.button_clear_roi.clicked.connect(self.clear_crop)
+        self.button_show_mask.clicked.connect(self.toggle_show_mask)
 
         self.waterfall_image = pg.ImageView()
         self.waterfall_image.setPredefinedGradient('thermal')
 
         self.ROI_line = None
+        self.showing_mask = False
 
         self.hline1 = pg.InfiniteLine(angle=0, movable=True, hoverPen={'color': "FF0", 'width': 4})
         self.hline2 = pg.InfiniteLine(angle=0, movable=True, hoverPen={'color': "FF0", 'width': 4})
@@ -61,6 +66,7 @@ class WaterfallWindow(QMainWindow):
             mb.exec()
             return
 
+        self.setWindowTitle(f'Single Particle Analysis: {file.name}')
         self.update_image(self.analyze_model.waterfall)
         self.analyze_model.contextual_data.update({'last_dir': str(file.parent)})
         if ind := self.analyze_model.metadata['bkg_axis'] is not None:
@@ -95,8 +101,7 @@ class WaterfallWindow(QMainWindow):
             view.addItem(self.hline2)
             self.first_waterfall_update = False
         if self.ROI_line is None:
-            self.ROI_line = pg.LineSegmentROI([(0, 0), (image.shape[0], 0)], maxBounds=QRect(0, 0, image.shape[1],
-                                                                                             image.shape[0]))
+            self.ROI_line = pg.LineSegmentROI([(0, 0), (image.shape[0], 0)])
 
         self.waterfall_image.autoRange()
         self.waterfall_image.autoLevels()
@@ -133,6 +138,36 @@ class WaterfallWindow(QMainWindow):
         t = Thread(target=calculate_bkg_thread, args=(self, axis, sigma))
         t.start()
 
+    def denoise_image(self):
+        def denoise(self):
+            self.statusbar.showMessage('Denoising image')
+            self.analyze_model.denoise()
+            self.update_image(self.analyze_model.corrected_data)
+            self.statusbar.showMessage('')
+
+        t = Thread(target=denoise, args=(self, ))
+        t.start()
+
+    def calculate_mask(self):
+        threshold = int(self.line_mask_threshold.text())
+        min_size = int(self.line_mask_min_size.text())
+        max_gap = int(self.line_mask_max_gap.text())
+        min_len = int(self.line_mask_min_len.text())
+        self.analyze_model.calculate_mask(threshold=threshold, min_size=min_size, max_gap=max_gap)
+        self.analyze_model.label_mask(min_len=min_len)
+        if self.showing_mask:
+            self.update_image(self.analyze_model.mask)
+
+    def toggle_show_mask(self):
+        if self.showing_mask:
+            self.update_image(self.analyze_model.corrected_data)
+            self.button_show_mask.setText('Show Mask')
+            self.showing_mask = False
+        else:
+            self.update_image(self.analyze_model.mask)
+            self.button_show_mask.setText('Show Waterfall')
+            self.showing_mask = True
+
     def transpose_waterfall(self):
         self.analyze_model.transpose_waterfall()
         self.update_image(self.analyze_model.waterfall)
@@ -144,7 +179,12 @@ class WaterfallWindow(QMainWindow):
     def display_ROI(self):
         slice = self.ROI_line.getArraySlice(self.analyze_model.waterfall, self.waterfall_image.getImageItem())
 
-        self.particle_windows.append(ParticleWindow(self.analyze_model, slice[0][1]))
+        self.particle_windows.append(ParticleWindow(self.analyze_model, slice_data=slice[0][1]))
+        self.particle_windows[-1].show()
+
+    def display_labels(self):
+        self.particle_windows.append(ParticleWindow(self.analyze_model, props=self.analyze_model.filtered_props,
+                                                    particle_number=0))
         self.particle_windows[-1].show()
 
 if __name__ == '__main__':
