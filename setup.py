@@ -11,6 +11,6 @@ setup(
     include_package_data=True,
     packages=find_packages('.'),
     package_data={
-        "": ['GUI/*.ui', 'GUI/Icons/*.svg']
+        "": ['GUI/*.ui', 'GUI/Icons/*.svg', 'GUI/Icons/*.png']
         }
     )
