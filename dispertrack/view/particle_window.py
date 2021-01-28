@@ -40,6 +40,9 @@ class ParticleWindow(QMainWindow):
         else:
             raise Exception('Either slice_data is specified or label is specified')
 
+        self.action_next.triggered.connect(self.next_particle)
+        self.action_previous.triggered.connect(self.previous_particle)
+        self.action_valid.triggered.connect(self.toggle_valid)
         self.button_apply.clicked.connect(self.calculate_particle_data)
         self.button_save.clicked.connect(self.save_data)
         self.slider_frames.valueChanged.connect(self.update_1d_plot)
@@ -51,6 +54,9 @@ class ParticleWindow(QMainWindow):
 
         self.calculate_particle_data()
 
+    def toggle_valid(self):
+        self.check_valid.setCheckState(not self.check_valid.checkState())
+
     def next_particle(self):
         if self.particle_num is None:
             self.button_next.setEnabled(False)
@@ -58,6 +64,7 @@ class ParticleWindow(QMainWindow):
         if self.particle_num + 1 <= len(self.props):
             self.save_label_data()
             self.particle_num += 1
+            self.check_valid.setCheckState(True)
             self.calculate_particle_data()
             self.setWindowTitle(f'Single-Particle Analysis - pcle {self.particle_num}')
             self.line_current_particle.setText(str(self.particle_num))
@@ -135,6 +142,10 @@ class ParticleWindow(QMainWindow):
         msd_plot.plot(x, self.MSD['MSD'].array, pen=None, symbol='o')
         msd_plot.setLogMode(True, True)
 
+        fit = np.polyfit(x[:10], self.MSD['MSD'][:10], 2)
+        info = f'D: {fit[1]/2:2.2f}um^2/s\n V: {np.sqrt(fit[0])}um/s\n O: {fit[2]}'
+        self.diffusion_information.setText(info)
+
     def update_intensities(self):
         pi = self.widget_intensity.getPlotItem()
         pi.clear()
@@ -143,8 +154,13 @@ class ParticleWindow(QMainWindow):
 
         hi = self.widget_intensity_histogram.getPlotItem()
         hi.clear()
-        bins = np.linspace(np.nanmin(self.intensities), np.nanmax(self.intensities), 20)
-        y, x = np.histogram(self.intensities[~np.isnan(self.intensities)], bins=bins)
+        intensity = self.intensities
+        if self.analyze_model.coupled_intensity is not None:
+            intensity /= self.analyze_model.coupled_intensity
+        intensity = np.power(intensity[~np.isnan(intensity)], 1/6)
+        bins = np.linspace(np.nanmin(intensity), np.nanmax(intensity), 20)
+        y, x = np.histogram(intensity, bins=bins)
+
         hi.plot(x, y, stepMode=True, fillLevel=0, brush=(0, 125, 125, 150))
 
     def update_1d_plot(self, frame):
@@ -160,12 +176,13 @@ class ParticleWindow(QMainWindow):
     def save_label_data(self):
         data = np.stack((self.positions, self.intensities, self.centers))
         metadata = {
+            'valid': self.check_valid.checkState(),
             'width': int(self.line_slice_width.text()),
             'threshold': int(self.line_position_threshold.text()),
             'separation': int(self.line_position_separation.text()),
             'radius': int(self.line_position_radius.text()),
             }
-        self.analyze_model.save_particle_data(data, metadata, self.particle_num)
+        self.analyze_model.save_particle_label(data, metadata, self.particle_num)
 
     def save_data(self):
         if self.particle_num is not None:

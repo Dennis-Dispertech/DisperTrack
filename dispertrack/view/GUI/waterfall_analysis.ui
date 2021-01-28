@@ -1547,6 +1547,7 @@ QToolButton:pressed {background-color:darkgray}
    </attribute>
    <addaction name="action_open"/>
    <addaction name="action_transpose"/>
+   <addaction name="action_select_intensity"/>
    <addaction name="action_crop"/>
    <addaction name="action_background"/>
    <addaction name="action_denoise"/>
@@ -1677,7 +1678,21 @@ QToolButton:pressed {background-color:darkgray}
     <string>Load mask from file</string>
    </property>
   </action>
+  <action name="action_select_intensity">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/Icons/Icons/dashing_subtract.svg</normaloff>:/Icons/Icons/dashing_subtract.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Select Normalizing Intensity</string>
+   </property>
+   <property name="toolTip">
+    <string>Region to use as reference intensity</string>
+   </property>
+  </action>
  </widget>
- <resources/>
+ <resources>
+  <include location="resources.qrc"/>
+ </resources>
  <connections/>
 </ui>

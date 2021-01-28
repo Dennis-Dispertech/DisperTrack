@@ -3,5 +3,30 @@
         <file>Icons/checkbox_checked.svg</file>
         <file>Icons/checkbox_indeterminate.svg</file>
         <file>Icons/checkbox_unchecked.svg</file>
+        <file>Icons/checkbox_checked_disabled.png</file>
+        <file>Icons/checkbox_checked_disabled@2x.png</file>
+        <file>Icons/checkbox_checked_focus.png</file>
+        <file>Icons/checkbox_checked_focus@2x.png</file>
+        <file>Icons/checkbox_checked_pressed.png</file>
+        <file>Icons/checkbox_checked_pressed@2x.png</file>
+        <file>Icons/checkbox_checked.png</file>
+        <file>Icons/checkbox_checked@2x.png</file>
+        <file>Icons/checkbox_indeterminate_disabled.png</file>
+        <file>Icons/checkbox_indeterminate_disabled@2x.png</file>
+        <file>Icons/checkbox_indeterminate_focus.png</file>
+        <file>Icons/checkbox_indeterminate_focus@2x.png</file>
+        <file>Icons/checkbox_indeterminate_pressed.png</file>
+        <file>Icons/checkbox_indeterminate_pressed@2x.png</file>
+        <file>Icons/checkbox_indeterminate.png</file>
+        <file>Icons/checkbox_indeterminate@2x.png</file>
+        <file>Icons/checkbox_unchecked_disabled.png</file>
+        <file>Icons/checkbox_unchecked_disabled@2x.png</file>
+        <file>Icons/checkbox_unchecked_focus.png</file>
+        <file>Icons/checkbox_unchecked_focus@2x.png</file>
+        <file>Icons/checkbox_unchecked_pressed.png</file>
+        <file>Icons/checkbox_unchecked_pressed@2x.png</file>
+        <file>Icons/checkbox_unchecked.png</file>
+        <file>Icons/checkbox_unchecked@2x.png</file>
+        <file>Icons/dashing_subtract.svg</file>
     </qresource>
 </RCC>

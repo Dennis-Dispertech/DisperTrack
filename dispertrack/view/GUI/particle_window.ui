@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>980</width>
-    <height>770</height>
+    <width>1027</width>
+    <height>624</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -84,7 +84,7 @@ QGroupBox::indicator:unchecked,
 QGroupBox::indicator:unchecked:hover
 {
     /*image: url(:/dark_blue/img/checkbox_unchecked.png);*/
-    image: url(:/Icons/Icons/checkbox_unchecked.svg);
+    image: url(:/Icons/Icons/checkbox_unchecked.png);
 }
 
 QCheckBox::indicator:unchecked:focus,
@@ -93,7 +93,7 @@ QGroupBox::indicator:unchecked:focus,
 QGroupBox::indicator:unchecked:pressed
 {
   border: none;
-  image: url(:/Icons/Icons/checkbox_unchecked_focus.svg);
+  image: url(:/Icons/Icons/checkbox_unchecked_focus.png);
 }
 
 QCheckBox::indicator:checked,
@@ -101,7 +101,7 @@ QCheckBox::indicator:checked:hover,
 QGroupBox::indicator:checked,
 QGroupBox::indicator:checked:hover
 {
-    image: url(:/Icons/Icons/checkbox_checked.svg);
+    image: url(:/Icons/Icons/checkbox_checked.png);
 }
 
 QCheckBox::indicator:checked:focus,
@@ -110,7 +110,7 @@ QGroupBox::indicator:checked:focus,
 QGroupBox::indicator:checked:pressed
 {
   border: none;
-  image: url(:/Icons/Icons/checkbox_checked_focus.svg);
+  image: url(:/Icons/Icons/checkbox_checked_focus.png);
 }
 
 QCheckBox::indicator:indeterminate,
@@ -120,25 +120,25 @@ QGroupBox::indicator:indeterminate,
 QGroupBox::indicator:indeterminate:hover,
 QGroupBox::indicator:indeterminate:pressed
 {
-    image: url(:/dark_blue/img/checkbox_indeterminate.png);
+    image: url(:/Icons/Icons/checkbox_indeterminate.png);
 }
 
 QCheckBox::indicator:indeterminate:focus,
 QGroupBox::indicator:indeterminate:focus
 {
-    image: url(:/dark_blue/img/checkbox_indeterminate_focus.png);
+    image: url(:/Icons/Icons/checkbox_indeterminate_focus.png);
 }
 
 QCheckBox::indicator:checked:disabled,
 QGroupBox::indicator:checked:disabled
 {
-    image: url(:/dark_blue/img/checkbox_checked_disabled.png);
+    image: url(:/Icons/Icons/checkbox_checked_disabled.png);
 }
 
 QCheckBox::indicator:unchecked:disabled,
 QGroupBox::indicator:unchecked:disabled
 {
-    image: url(:/dark_blue/img/checkbox_unchecked_disabled.png);
+    image: url(:/Icons/Icons/checkbox_unchecked_disabled.png);
 }
 
 QRadioButton
@@ -1255,24 +1255,104 @@ ColorButton::disabled {
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
-    <item row="2" column="1">
-     <widget class="PlotWidget" name="widget_position" native="true">
+    <item row="0" column="0" colspan="3">
+     <widget class="QWidget" name="widget" native="true">
       <property name="sizePolicy">
-       <sizepolicy hsizetype="MinimumExpanding" vsizetype="Expanding">
-        <horstretch>5</horstretch>
-        <verstretch>3</verstretch>
+       <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+        <horstretch>0</horstretch>
+        <verstretch>1</verstretch>
        </sizepolicy>
       </property>
-     </widget>
-    </item>
-    <item row="3" column="1">
-     <widget class="PlotWidget" name="widget_intensity" native="true">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-        <horstretch>10</horstretch>
-        <verstretch>3</verstretch>
-       </sizepolicy>
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>0</height>
+       </size>
       </property>
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <item>
+        <widget class="QLabel" name="label_7">
+         <property name="text">
+          <string>Current Particle: </string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="line_current_particle">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>10</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>50</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="baseSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="button_previous">
+         <property name="text">
+          <string>Prev</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="button_next">
+         <property name="text">
+          <string>Next</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="check_valid">
+         <property name="styleSheet">
+          <string notr="true">indicator {
+    width: 13px;
+    height: 13px;
+}
+
+border{
+    color: red;
+}</string>
+         </property>
+         <property name="text">
+          <string>Valid?</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>80</width>
+           <height>10</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
      </widget>
     </item>
     <item row="5" column="1">
@@ -1413,144 +1493,118 @@ ColorButton::disabled {
       </layout>
      </widget>
     </item>
-    <item row="2" column="2">
-     <widget class="PlotWidget" name="widget_diffusion" native="true">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-        <horstretch>5</horstretch>
-        <verstretch>3</verstretch>
-       </sizepolicy>
-      </property>
-     </widget>
-    </item>
-    <item row="1" column="1" colspan="2">
+    <item row="1" column="1" colspan="4">
      <widget class="ImageView" name="widget_image" native="true">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-        <horstretch>10</horstretch>
+        <horstretch>12</horstretch>
         <verstretch>3</verstretch>
        </sizepolicy>
       </property>
      </widget>
     </item>
-    <item row="3" column="2">
-     <widget class="PlotWidget" name="widget_intensity_histogram" native="true">
+    <item row="4" column="1" colspan="4">
+     <widget class="PlotWidget" name="widget_1d_plot" native="true">
       <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+       <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+        <horstretch>12</horstretch>
+        <verstretch>3</verstretch>
+       </sizepolicy>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="4">
+     <widget class="QWidget" name="widget_2" native="true">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="MinimumExpanding" vsizetype="Expanding">
+        <horstretch>1</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <layout class="QHBoxLayout" name="horizontalLayout_2">
+       <item>
+        <widget class="QLabel" name="diffusion_information">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>1</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">font-size: 10pt;
+</string>
+         </property>
+         <property name="text">
+          <string>Diffusion Information</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item row="3" column="4">
+     <widget class="QWidget" name="widget_3" native="true">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="MinimumExpanding" vsizetype="Expanding">
+        <horstretch>1</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <layout class="QHBoxLayout" name="horizontalLayout_3">
+       <item>
+        <widget class="QLabel" name="label_8">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>1</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="text">
+          <string>Intensity Information</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item row="3" column="1">
+     <widget class="PlotWidget" name="widget_intensity" native="true">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
         <horstretch>5</horstretch>
         <verstretch>3</verstretch>
        </sizepolicy>
       </property>
      </widget>
     </item>
-    <item row="4" column="1" colspan="2">
-     <widget class="PlotWidget" name="widget_1d_plot" native="true">
+    <item row="2" column="1">
+     <widget class="PlotWidget" name="widget_position" native="true">
       <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-        <horstretch>10</horstretch>
+       <sizepolicy hsizetype="MinimumExpanding" vsizetype="Expanding">
+        <horstretch>5</horstretch>
         <verstretch>3</verstretch>
        </sizepolicy>
       </property>
      </widget>
     </item>
-    <item row="0" column="0" colspan="3">
-     <widget class="QWidget" name="widget" native="true">
+    <item row="2" column="2" colspan="2">
+     <widget class="PlotWidget" name="widget_diffusion" native="true">
       <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
-        <horstretch>0</horstretch>
-        <verstretch>1</verstretch>
+       <sizepolicy hsizetype="MinimumExpanding" vsizetype="Expanding">
+        <horstretch>5</horstretch>
+        <verstretch>3</verstretch>
        </sizepolicy>
       </property>
-      <property name="minimumSize">
-       <size>
-        <width>0</width>
-        <height>0</height>
-       </size>
+     </widget>
+    </item>
+    <item row="3" column="2" colspan="2">
+     <widget class="PlotWidget" name="widget_intensity_histogram" native="true">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="MinimumExpanding" vsizetype="Expanding">
+        <horstretch>5</horstretch>
+        <verstretch>3</verstretch>
+       </sizepolicy>
       </property>
-      <layout class="QHBoxLayout" name="horizontalLayout">
-       <item>
-        <widget class="QLabel" name="label_7">
-         <property name="text">
-          <string>Current Particle: </string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLineEdit" name="line_current_particle">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>10</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>50</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="baseSize">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="button_previous">
-         <property name="text">
-          <string>Prev</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="button_next">
-         <property name="text">
-          <string>Next</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QCheckBox" name="check_valid">
-         <property name="styleSheet">
-          <string notr="true">indicator {
-    width: 13px;
-    height: 13px;
-}
-
-border{
-    color: red;
-}</string>
-         </property>
-         <property name="text">
-          <string>Valid?</string>
-         </property>
-         <property name="checked">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <spacer name="horizontalSpacer">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>80</width>
-           <height>10</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-      </layout>
      </widget>
     </item>
    </layout>
@@ -1560,10 +1614,19 @@ border{
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>980</width>
+     <width>1027</width>
      <height>24</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menuParticle">
+    <property name="title">
+     <string>Particle</string>
+    </property>
+    <addaction name="action_next"/>
+    <addaction name="action_previous"/>
+    <addaction name="action_valid"/>
+   </widget>
+   <addaction name="menuParticle"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="toolBar">
@@ -1577,6 +1640,30 @@ border{
     <bool>false</bool>
    </attribute>
   </widget>
+  <action name="action_next">
+   <property name="text">
+    <string>Next particle</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+N</string>
+   </property>
+  </action>
+  <action name="action_previous">
+   <property name="text">
+    <string>Previous Particle</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+M</string>
+   </property>
+  </action>
+  <action name="action_valid">
+   <property name="text">
+    <string>Toggle valid</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+V</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>

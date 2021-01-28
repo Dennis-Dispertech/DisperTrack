@@ -32,6 +32,7 @@ class WaterfallWindow(QMainWindow):
         self.action_create_mask.triggered.connect(self.calculate_mask)
         self.action_show_labels.triggered.connect(self.display_labels)
         self.action_load_mask.triggered.connect(self.load_mask)
+        self.action_select_intensity.triggered.connect(self.calculate_coupled_intensity)
 
         self.button_clear_roi.clicked.connect(self.clear_crop)
         self.button_show_mask.clicked.connect(self.toggle_show_mask)
@@ -118,6 +119,11 @@ class WaterfallWindow(QMainWindow):
 
         self.waterfall_image.autoRange()
         self.waterfall_image.autoLevels()
+
+    def calculate_coupled_intensity(self):
+        x = [self.hline1.value(), self.hline2.value()]
+        x = np.sort(x).astype(np.int)
+        self.analyze_model.calculate_coupled_intensity(min_pixel=x[0], max_pixel=x[1])
 
     def clear_crop(self):
         self.analyze_model.clear_crop()
