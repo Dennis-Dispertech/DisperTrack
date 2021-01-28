@@ -250,6 +250,26 @@ class AnalyzeWaterfall:
 
         self.filtered_props = filtered_props
 
+    def save_particle_label(self, data, metadata, particle_num):
+        if self.mask is not None:
+            if 'mask' not in self.file.keys():
+                mask = self.file.create_group('mask')
+                particles = mask.create_group('particles')
+            elif 'particles' not in self.file['mask'].keys():
+                particles = self.file['mask'].create_group('particles')
+            else:
+                particles = self.file['mask']['particles']
+        else:
+            Warning('Can\'t save label data if there\'s no mask defined in the model')
+            return
+
+        if str(particle_num) in particles.keys():
+            del particles[str(particle_num)]
+
+        particles.create_dataset(str(particle_num), data=data)
+        for key, value in metadata.items():
+            particles.attrs[key] = value
+
     def save_particle_data(self, data, metadata, particle_num=None):
         """ Save the particle data to the same file from which the waterfall was taken. The data to be saved is a 2D
         array that contains the position and intensity at each frame, or 0 if no information is available (for

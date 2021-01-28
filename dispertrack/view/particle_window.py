@@ -56,10 +56,13 @@ class ParticleWindow(QMainWindow):
             self.button_next.setEnabled(False)
             return
         if self.particle_num + 1 <= len(self.props):
+            self.save_label_data()
             self.particle_num += 1
             self.calculate_particle_data()
             self.setWindowTitle(f'Single-Particle Analysis - pcle {self.particle_num}')
             self.line_current_particle.setText(str(self.particle_num))
+            if self.particle_num + 1 > len(self.props):
+                self.button_next.setEnabled(False)
         else:
             self.button_next.setEnabled(False)
 
@@ -68,10 +71,13 @@ class ParticleWindow(QMainWindow):
             self.button_previous.setEnabled(False)
             return
         if self.particle_num - 1 >= 0:
+            self.save_label_data()
             self.particle_num -= 1
             self.calculate_particle_data()
             self.setWindowTitle(f'Single-Particle Analysis - pcle {self.particle_num}')
             self.line_current_particle.setText(str(self.particle_num))
+            if self.particle_num == 0:
+                self.button_previous.setEnabled(False)
         else:
             self.button_previous.setEnabled(False)
 
@@ -150,6 +156,16 @@ class ParticleWindow(QMainWindow):
         self.widget_1d_plot.plot([self.positions[frame], ], [self.data[frame][round(self.positions[frame])],],
                                  symbolBrush=pg.mkBrush(0, 0, 255, 255),
                                  symbolSize=7)
+
+    def save_label_data(self):
+        data = np.stack((self.positions, self.intensities, self.centers))
+        metadata = {
+            'width': int(self.line_slice_width.text()),
+            'threshold': int(self.line_position_threshold.text()),
+            'separation': int(self.line_position_separation.text()),
+            'radius': int(self.line_position_radius.text()),
+            }
+        self.analyze_model.save_particle_data(data, metadata, self.particle_num)
 
     def save_data(self):
         if self.particle_num is not None:
