@@ -29,6 +29,7 @@ class AnalyzeWaterfall:
         self.corrected_data = None
         self.mask = None
         self.filtered_props = []
+        self.coupled_intensity = None
 
         self.metadata = {
             'start_frame': None,
@@ -116,6 +117,12 @@ class AnalyzeWaterfall:
         self.waterfall = self.waterfall[:, start:stop]
         self.metadata['start_frame'] = start
         self.metadata['end_frame'] = stop
+
+    def calculate_coupled_intensity(self, min_pixel=0, max_pixel=-1):
+        self.metadata['coupled_intensity_min_pixel'] = min_pixel
+        self.metadata['coupled_intensity_max_pixel'] = max_pixel
+
+        self.coupled_intensity = np.mean(self.waterfall[:, min_pixel:max_pixel])
 
     def calculate_background(self, axis=1, sigma=25):
         self.bkg = sp.ndimage.gaussian_filter1d(self.waterfall, axis=axis, sigma=sigma)
@@ -255,20 +262,26 @@ class AnalyzeWaterfall:
             if 'mask' not in self.file.keys():
                 mask = self.file.create_group('mask')
                 particles = mask.create_group('particles')
+                print('Creating mask and particle gourps')
             elif 'particles' not in self.file['mask'].keys():
                 particles = self.file['mask'].create_group('particles')
+                print('Creating particles group')
             else:
                 particles = self.file['mask']['particles']
+                print('Retrieving particles group')
         else:
             Warning('Can\'t save label data if there\'s no mask defined in the model')
             return
 
         if str(particle_num) in particles.keys():
+            print(f'Deleting particle {particle_num}')
             del particles[str(particle_num)]
 
-        particles.create_dataset(str(particle_num), data=data)
+        dset = self.file['mask/particles'].create_dataset(str(particle_num), data=data)
+        print(dset)
+        print(f'Creating pcle: {particle_num}')
         for key, value in metadata.items():
-            particles.attrs[key] = value
+            dset.attrs[key] = value
 
     def save_particle_data(self, data, metadata, particle_num=None):
         """ Save the particle data to the same file from which the waterfall was taken. The data to be saved is a 2D
@@ -307,12 +320,5 @@ class AnalyzeWaterfall:
                     del self.file[key]
                 if value is not None:
                     self.file.create_dataset(key, data=value)
-
-            if self.mask is not None:
-                if 'mask' in self.file.keys():
-                    del self.file['mask']
-
-                self.file.create_group('mask')
-                self.file['mask'].create_dataset('mask', data=self.mask)
-
+            self.file.flush()
             self.file.close()
