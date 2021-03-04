@@ -1352,6 +1352,13 @@ border{
          </property>
         </spacer>
        </item>
+       <item>
+        <widget class="QPushButton" name="button_save_all">
+         <property name="text">
+          <string>Save All</string>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
     </item>

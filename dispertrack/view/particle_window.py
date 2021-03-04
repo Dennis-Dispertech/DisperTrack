@@ -1,4 +1,5 @@
 from PyQt5 import uic
+from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QMainWindow, QMessageBox
 
 import numpy as np
@@ -54,15 +55,24 @@ class ParticleWindow(QMainWindow):
 
         self.calculate_particle_data()
 
+        self.button_save_all.clicked.connect(self.save_all)
+
+        self.save_all_timer = QTimer()
+        self.save_all_timer.timeout.connect(self.next_particle)
+
     def toggle_valid(self):
         self.check_valid.setCheckState(not self.check_valid.checkState())
 
     def next_particle(self):
         if self.particle_num is None:
             self.button_next.setEnabled(False)
+            self.save_all_timer.stop()
             return
         if self.particle_num + 1 <= len(self.props):
-            self.save_label_data()
+            try:
+                self.save_label_data()
+            except ValueError:
+                print(f'Problem saving particle {self.particle_num}')
             self.particle_num += 1
             self.check_valid.setCheckState(True)
             self.calculate_particle_data()
@@ -72,6 +82,7 @@ class ParticleWindow(QMainWindow):
                 self.button_next.setEnabled(False)
         else:
             self.button_next.setEnabled(False)
+            self.save_all_timer.stop()
 
     def previous_particle(self):
         if self.particle_num is None:
@@ -207,6 +218,9 @@ class ParticleWindow(QMainWindow):
         self.particle_num = self.analyze_model.save_particle_data(data, metadata, self.particle_num)
 
         self.saved = True
+
+    def save_all(self):
+        self.save_all_timer.start(200)
 
     def closeEvent(self, event):
         if self.saved:
