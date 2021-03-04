@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>AnalysisWindow</class>
- <widget class="QMainWindow" name="AnalysisWindow">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1233</width>
-    <height>829</height>
+    <width>800</width>
+    <height>600</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Waterfall Analysis</string>
+   <string>MainWindow</string>
   </property>
   <property name="styleSheet">
    <string notr="true">QProgressBar:horizontal {
@@ -1254,250 +1254,18 @@ ColorButton::disabled {
 }</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <property name="styleSheet">
-    <string notr="true">QWidget#centralwidget{
-padding: 0;
-}</string>
-   </property>
-   <layout class="QHBoxLayout" name="horizontalLayout">
-    <item>
-     <widget class="QWidget" name="parameters_widget" native="true">
-      <property name="enabled">
-       <bool>true</bool>
-      </property>
-      <property name="maximumSize">
-       <size>
-        <width>120</width>
-        <height>16777215</height>
-       </size>
-      </property>
-      <property name="styleSheet">
-       <string notr="true"/>
-      </property>
-      <layout class="QVBoxLayout" name="verticalLayout_2">
-       <item>
-        <widget class="QLabel" name="label_2">
-         <property name="styleSheet">
-          <string notr="true">QLabel { 
-font-size: 15px;
-font-weight: bold;
-}</string>
-         </property>
-         <property name="text">
-          <string>ROI</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_3">
-         <property name="text">
-          <string>Start</string>
-         </property>
-         <property name="buddy">
-          <cstring>line_start_frame</cstring>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLineEdit" name="line_start_frame">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_4">
-         <property name="text">
-          <string>End</string>
-         </property>
-         <property name="buddy">
-          <cstring>line_end_frame</cstring>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLineEdit" name="line_end_frame">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="button_clear_roi">
-         <property name="text">
-          <string>Clear</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="Line" name="line">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="label">
-         <property name="styleSheet">
-          <string notr="true">QLabel { 
-font-size: 15px;
-font-weight: bold;
-}</string>
-         </property>
-         <property name="text">
-          <string>Background</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_5">
-         <property name="text">
-          <string>Axis</string>
-         </property>
-         <property name="buddy">
-          <cstring>combo_bkg_axis</cstring>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QComboBox" name="combo_bkg_axis">
-         <property name="toolTip">
-          <string>Background axis</string>
-         </property>
-         <item>
-          <property name="text">
-           <string>1</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>2</string>
-          </property>
-         </item>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_6">
-         <property name="text">
-          <string>Sigma</string>
-         </property>
-         <property name="buddy">
-          <cstring>line_bkg</cstring>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLineEdit" name="line_bkg">
-         <property name="toolTip">
-          <string>Background sigma</string>
-         </property>
-         <property name="text">
-          <string>50</string>
-         </property>
-         <property name="cursorMoveStyle">
-          <enum>Qt::VisualMoveStyle</enum>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="Line" name="line_2">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_7">
-         <property name="styleSheet">
-          <string notr="true">QLabel { 
-font-size: 15px;
-font-weight: bold;
-}</string>
-         </property>
-         <property name="text">
-          <string>Mask</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_8">
-         <property name="text">
-          <string>Threshold</string>
-         </property>
-         <property name="buddy">
-          <cstring>line_mask_threshold</cstring>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLineEdit" name="line_mask_threshold"/>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_9">
-         <property name="text">
-          <string>Max Gap</string>
-         </property>
-         <property name="buddy">
-          <cstring>line_mask_max_gap</cstring>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLineEdit" name="line_mask_max_gap"/>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_10">
-         <property name="text">
-          <string>Min Size</string>
-         </property>
-         <property name="buddy">
-          <cstring>line_mask_min_size</cstring>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLineEdit" name="line_mask_min_size"/>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_11">
-         <property name="text">
-          <string>Min Length</string>
-         </property>
-         <property name="buddy">
-          <cstring>line_mask_min_len</cstring>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLineEdit" name="line_mask_min_len"/>
-       </item>
-       <item>
-        <widget class="QPushButton" name="button_show_mask">
-         <property name="text">
-          <string>Show Mask</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <spacer name="verticalSpacer">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>40</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-      </layout>
-     </widget>
+   <layout class="QGridLayout" name="gridLayout">
+    <item row="0" column="1">
+     <widget class="PlotWidget" name="intensity_histogram" native="true"/>
     </item>
-    <item>
-     <widget class="QWidget" name="plot_widget" native="true">
-      <layout class="QGridLayout" name="gridLayout_2"/>
-     </widget>
+    <item row="0" column="0">
+     <widget class="PlotWidget" name="diffusion_histogram" native="true"/>
+    </item>
+    <item row="1" column="0">
+     <widget class="PlotWidget" name="diffusion_intensity_plot" native="true"/>
+    </item>
+    <item row="1" column="1">
+     <widget class="QWidget" name="widget_4" native="true"/>
     </item>
    </layout>
   </widget>
@@ -1506,217 +1274,21 @@ font-weight: bold;
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1233</width>
+     <width>800</width>
      <height>24</height>
     </rect>
    </property>
-   <widget class="QMenu" name="menuFile">
-    <property name="title">
-     <string>File</string>
-    </property>
-    <addaction name="action_open"/>
-   </widget>
-   <widget class="QMenu" name="menuWaterfall">
-    <property name="title">
-     <string>Waterfall</string>
-    </property>
-    <addaction name="action_transpose"/>
-    <addaction name="action_background"/>
-    <addaction name="action_setup_roi"/>
-    <addaction name="action_apply_roi"/>
-    <addaction name="action_load_mask"/>
-   </widget>
-   <widget class="QMenu" name="menuMovie">
-    <property name="title">
-     <string>Movie</string>
-    </property>
-    <addaction name="action_open_movie"/>
-   </widget>
-   <widget class="QMenu" name="menuHistogram">
-    <property name="title">
-     <string>Histogram</string>
-    </property>
-    <addaction name="action_view_histogram"/>
-   </widget>
-   <addaction name="menuFile"/>
-   <addaction name="menuWaterfall"/>
-   <addaction name="menuMovie"/>
-   <addaction name="menuHistogram"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <widget class="QToolBar" name="toolBar">
-   <property name="windowTitle">
-    <string>toolBar</string>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">QToolButton:hover {background-color:lightgray}
-QToolButton:pressed {background-color:darkgray} 
-</string>
-   </property>
-   <attribute name="toolBarArea">
-    <enum>TopToolBarArea</enum>
-   </attribute>
-   <attribute name="toolBarBreak">
-    <bool>false</bool>
-   </attribute>
-   <addaction name="action_open"/>
-   <addaction name="action_transpose"/>
-   <addaction name="action_select_intensity"/>
-   <addaction name="action_crop"/>
-   <addaction name="action_background"/>
-   <addaction name="action_denoise"/>
-   <addaction name="action_create_mask"/>
-   <addaction name="action_show_labels"/>
-   <addaction name="action_setup_roi"/>
-   <addaction name="action_apply_roi"/>
-  </widget>
-  <action name="action_open">
-   <property name="icon">
-    <iconset>
-     <normaloff>Icons/folder-open-outline.svg</normaloff>Icons/folder-open-outline.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Open</string>
-   </property>
-   <property name="toolTip">
-    <string>Open waterfall</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+O</string>
-   </property>
-  </action>
-  <action name="action_transpose">
-   <property name="icon">
-    <iconset>
-     <normaloff>Icons/blueprint_shuffle.svg</normaloff>Icons/blueprint_shuffle.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Transpose</string>
-   </property>
-   <property name="toolTip">
-    <string>Transpose waterfall</string>
-   </property>
-  </action>
-  <action name="action_setup_roi">
-   <property name="icon">
-    <iconset>
-     <normaloff>Icons/blueprint_guide.svg</normaloff>Icons/blueprint_guide.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Setup ROI</string>
-   </property>
-   <property name="toolTip">
-    <string>Setup or clear ROI line</string>
-   </property>
-  </action>
-  <action name="action_apply_roi">
-   <property name="icon">
-    <iconset>
-     <normaloff>Icons/blueprint_live.svg</normaloff>Icons/blueprint_live.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Apply ROI</string>
-   </property>
-   <property name="toolTip">
-    <string>Show data iniside ROI</string>
-   </property>
-  </action>
-  <action name="action_background">
-   <property name="icon">
-    <iconset>
-     <normaloff>Icons/bent-blocks_erase.svg</normaloff>Icons/bent-blocks_erase.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Subtract Background</string>
-   </property>
-   <property name="toolTip">
-    <string>Remove Background</string>
-   </property>
-  </action>
-  <action name="action_crop">
-   <property name="icon">
-    <iconset>
-     <normaloff>Icons/bent-blocks_crop.svg</normaloff>Icons/bent-blocks_crop.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Crop</string>
-   </property>
-   <property name="toolTip">
-    <string>Select interesting range</string>
-   </property>
-  </action>
-  <action name="action_denoise">
-   <property name="icon">
-    <iconset>
-     <normaloff>Icons/blueprint_strain.svg</normaloff>Icons/blueprint_strain.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Denoise</string>
-   </property>
-   <property name="toolTip">
-    <string>Denois data with a 1-pixel Gaussian</string>
-   </property>
-  </action>
-  <action name="action_create_mask">
-   <property name="icon">
-    <iconset>
-     <normaloff>Icons/afiado_weld.svg</normaloff>Icons/afiado_weld.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Mask</string>
-   </property>
-   <property name="toolTip">
-    <string>Create binary mask of data</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+M</string>
-   </property>
-  </action>
-  <action name="action_show_labels">
-   <property name="icon">
-    <iconset>
-     <normaloff>Icons/afiado_find.svg</normaloff>Icons/afiado_find.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Explore labelled particles</string>
-   </property>
-   <property name="toolTip">
-    <string>Show Labelled Particles</string>
-   </property>
-  </action>
-  <action name="action_load_mask">
-   <property name="text">
-    <string>Load Mask</string>
-   </property>
-   <property name="toolTip">
-    <string>Load mask from file</string>
-   </property>
-  </action>
-  <action name="action_select_intensity">
-   <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/Icons/Icons/dashing_subtract.svg</normaloff>:/Icons/Icons/dashing_subtract.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Select Normalizing Intensity</string>
-   </property>
-   <property name="toolTip">
-    <string>Region to use as reference intensity</string>
-   </property>
-  </action>
-  <action name="action_open_movie">
-   <property name="text">
-    <string>Open Movie</string>
-   </property>
-  </action>
-  <action name="action_view_histogram">
-   <property name="text">
-    <string>View Histogram</string>
-   </property>
-  </action>
  </widget>
- <resources>
-  <include location="resources.qrc"/>
- </resources>
+ <customwidgets>
+  <customwidget>
+   <class>PlotWidget</class>
+   <extends>QWidget</extends>
+   <header>pyqtgraph</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
  <connections/>
 </ui>

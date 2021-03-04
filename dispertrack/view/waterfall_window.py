@@ -13,6 +13,7 @@ from dispertrack.view import view_folder
 
 import pyqtgraph as pg
 
+from dispertrack.view.histograms_window import HistogramWindow
 from dispertrack.view.movie_window import MovieWindow
 from dispertrack.view.particle_window import ParticleWindow
 
@@ -35,6 +36,7 @@ class WaterfallWindow(QMainWindow):
         self.action_load_mask.triggered.connect(self.load_mask)
         self.action_select_intensity.triggered.connect(self.calculate_coupled_intensity)
         self.action_open_movie.triggered.connect(self.open_movie_window)
+        self.action_view_histogram.triggered.connect(self.show_histogram_window)
 
         self.button_clear_roi.clicked.connect(self.clear_crop)
         self.button_show_mask.clicked.connect(self.toggle_show_mask)
@@ -212,6 +214,10 @@ class WaterfallWindow(QMainWindow):
         self.particle_windows.append(ParticleWindow(self.analyze_model, props=self.analyze_model.filtered_props,
                                                     particle_number=0))
         self.particle_windows[-1].show()
+
+    def show_histogram_window(self):
+        self.histogram_window = HistogramWindow(self.analyze_model)
+        self.histogram_window.show()
 
 if __name__ == '__main__':
     from PyQt5.QtWidgets import QApplication

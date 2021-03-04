@@ -278,7 +278,6 @@ class AnalyzeWaterfall:
             del particles[str(particle_num)]
 
         dset = self.file['mask/particles'].create_dataset(str(particle_num), data=data)
-        print(dset)
         print(f'Creating pcle: {particle_num}')
         for key, value in metadata.items():
             dset.attrs[key] = value
@@ -311,6 +310,34 @@ class AnalyzeWaterfall:
             pcle.create_dataset('metadata', data=json.dumps(metadata))
             return particle_num
 
+    def calculate_particle_properties(self):
+        bkg_intensity = np.mean(self.waterfall[:, :10])
+        self.particles = {}
+        lagtimes = 5E-3 * np.arange(1, 5)
+        for particle in self.file['mask/particles'].keys():
+            data = self.file['mask/particles'][particle][:]
+            MSD = self.calculate_diffusion(data[2, :], data[0, :])
+            fit = np.polyfit(lagtimes, MSD['MSD'].array[:len(lagtimes)], 2)
+            attrs = self.file['mask/particles'][particle].attrs
+            if attrs['valid'] == 0:
+                continue
+            m_i = np.nanmean(np.power(data[1, :] / bkg_intensity, 1 / 6))
+            self.particles[particle] = {
+                'data': data,
+                'mean_intensity': m_i,
+                'D': fit,
+                }
+
+        mean_intensity = np.zeros(len(self.particles))
+        diffusion = np.zeros(len(self.particles))
+        for i, d in enumerate(self.particles.values()):
+            mean_intensity[i] = d['mean_intensity']
+            diffusion[i] = d['D'][1] / 2
+
+        self.r = 2 * k_b * T / (6 * np.pi * eta * diffusion[diffusion > 0] / H(70 / 670) * 1E-12)
+        self.mean_intensity = mean_intensity[diffusion > 0]
+        self.diffusion_coefficient = diffusion[diffusion > 0]
+
     def finalize(self):
         with open(self.config_file_path, 'w') as f:
             json.dump(self.contextual_data, f)
@@ -322,3 +349,15 @@ class AnalyzeWaterfall:
                     self.file.create_dataset(key, data=value)
             self.file.flush()
             self.file.close()
+
+
+k_b = 1.38E-23
+T = 300
+eta = 0.0009532
+
+def H(λ):
+    return (1 - λ) ** 2 * (1 - 2.104 * λ + 2.09 * λ ** 3 - 0.95 * λ ** 5)
+
+x = np.linspace(5/670, 200/670, 400)
+y = H(x)
+
