@@ -13,6 +13,7 @@ from dispertrack.view import view_folder
 
 import pyqtgraph as pg
 
+from dispertrack.view.movie_window import MovieWindow
 from dispertrack.view.particle_window import ParticleWindow
 
 import dispertrack.view.GUI.resources_rc
@@ -33,6 +34,7 @@ class WaterfallWindow(QMainWindow):
         self.action_show_labels.triggered.connect(self.display_labels)
         self.action_load_mask.triggered.connect(self.load_mask)
         self.action_select_intensity.triggered.connect(self.calculate_coupled_intensity)
+        self.action_open_movie.triggered.connect(self.open_movie_window)
 
         self.button_clear_roi.clicked.connect(self.clear_crop)
         self.button_show_mask.clicked.connect(self.toggle_show_mask)
@@ -49,9 +51,14 @@ class WaterfallWindow(QMainWindow):
         self.first_waterfall_update = True
 
         self.particle_windows = []
+        self.open_movie_windows = []
 
         plot_layout = self.plot_widget.layout()
         plot_layout.addWidget(self.waterfall_image)
+
+    def open_movie_window(self):
+        self.open_movie_windows.append(MovieWindow())
+        self.open_movie_windows[-1].show()
 
     def open_waterfall(self):
         last_dir = self.analyze_model.contextual_data.get('last_dir', home_path)
@@ -212,3 +219,4 @@ if __name__ == '__main__':
     win = WaterfallWindow()
     win.show()
     app.exec()
+    

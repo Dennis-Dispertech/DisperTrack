@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>AnalysisWindow</class>
- <widget class="QMainWindow" name="AnalysisWindow">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1233</width>
-    <height>829</height>
+    <width>1178</width>
+    <height>799</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Waterfall Analysis</string>
+   <string>MainWindow</string>
   </property>
   <property name="styleSheet">
    <string notr="true">QProgressBar:horizontal {
@@ -1254,116 +1254,41 @@ ColorButton::disabled {
 }</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <property name="styleSheet">
-    <string notr="true">QWidget#centralwidget{
-padding: 0;
-}</string>
-   </property>
    <layout class="QHBoxLayout" name="horizontalLayout">
     <item>
-     <widget class="QWidget" name="parameters_widget" native="true">
-      <property name="enabled">
-       <bool>true</bool>
-      </property>
+     <widget class="QWidget" name="settings_widget" native="true">
       <property name="maximumSize">
        <size>
-        <width>120</width>
+        <width>250</width>
         <height>16777215</height>
        </size>
       </property>
-      <property name="styleSheet">
-       <string notr="true"/>
-      </property>
-      <layout class="QVBoxLayout" name="verticalLayout_2">
-       <item>
-        <widget class="QLabel" name="label_2">
-         <property name="styleSheet">
-          <string notr="true">QLabel { 
-font-size: 15px;
-font-weight: bold;
-}</string>
-         </property>
-         <property name="text">
-          <string>ROI</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_3">
-         <property name="text">
-          <string>Start</string>
-         </property>
-         <property name="buddy">
-          <cstring>line_start_frame</cstring>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLineEdit" name="line_start_frame">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_4">
-         <property name="text">
-          <string>End</string>
-         </property>
-         <property name="buddy">
-          <cstring>line_end_frame</cstring>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLineEdit" name="line_end_frame">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="button_clear_roi">
-         <property name="text">
-          <string>Clear</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="Line" name="line">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-        </widget>
-       </item>
-       <item>
+      <layout class="QFormLayout" name="formLayout">
+       <item row="0" column="0">
         <widget class="QLabel" name="label">
-         <property name="styleSheet">
-          <string notr="true">QLabel { 
-font-size: 15px;
-font-weight: bold;
-}</string>
-         </property>
          <property name="text">
-          <string>Background</string>
+          <string>Output Dir</string>
+         </property>
+         <property name="buddy">
+          <cstring>output_dir</cstring>
          </property>
         </widget>
        </item>
-       <item>
-        <widget class="QLabel" name="label_5">
+       <item row="0" column="1">
+        <widget class="QLineEdit" name="output_dir"/>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="label_3">
          <property name="text">
           <string>Axis</string>
          </property>
          <property name="buddy">
-          <cstring>combo_bkg_axis</cstring>
+          <cstring>combo_axis</cstring>
          </property>
         </widget>
        </item>
-       <item>
-        <widget class="QComboBox" name="combo_bkg_axis">
-         <property name="toolTip">
-          <string>Background axis</string>
-         </property>
+       <item row="2" column="1">
+        <widget class="QComboBox" name="combo_axis">
          <item>
           <property name="text">
            <string>1</string>
@@ -1371,114 +1296,19 @@ font-weight: bold;
          </item>
          <item>
           <property name="text">
-           <string>2</string>
+           <string>0</string>
           </property>
          </item>
         </widget>
        </item>
-       <item>
-        <widget class="QLabel" name="label_6">
+       <item row="3" column="1">
+        <widget class="QCheckBox" name="checkboc_transpose">
          <property name="text">
-          <string>Sigma</string>
-         </property>
-         <property name="buddy">
-          <cstring>line_bkg</cstring>
+          <string>Transpose</string>
          </property>
         </widget>
        </item>
-       <item>
-        <widget class="QLineEdit" name="line_bkg">
-         <property name="toolTip">
-          <string>Background sigma</string>
-         </property>
-         <property name="text">
-          <string>50</string>
-         </property>
-         <property name="cursorMoveStyle">
-          <enum>Qt::VisualMoveStyle</enum>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="Line" name="line_2">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_7">
-         <property name="styleSheet">
-          <string notr="true">QLabel { 
-font-size: 15px;
-font-weight: bold;
-}</string>
-         </property>
-         <property name="text">
-          <string>Mask</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_8">
-         <property name="text">
-          <string>Threshold</string>
-         </property>
-         <property name="buddy">
-          <cstring>line_mask_threshold</cstring>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLineEdit" name="line_mask_threshold"/>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_9">
-         <property name="text">
-          <string>Max Gap</string>
-         </property>
-         <property name="buddy">
-          <cstring>line_mask_max_gap</cstring>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLineEdit" name="line_mask_max_gap"/>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_10">
-         <property name="text">
-          <string>Min Size</string>
-         </property>
-         <property name="buddy">
-          <cstring>line_mask_min_size</cstring>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLineEdit" name="line_mask_min_size"/>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_11">
-         <property name="text">
-          <string>Min Length</string>
-         </property>
-         <property name="buddy">
-          <cstring>line_mask_min_len</cstring>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLineEdit" name="line_mask_min_len"/>
-       </item>
-       <item>
-        <widget class="QPushButton" name="button_show_mask">
-         <property name="text">
-          <string>Show Mask</string>
-         </property>
-        </widget>
-       </item>
-       <item>
+       <item row="4" column="1">
         <spacer name="verticalSpacer">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -1491,12 +1321,50 @@ font-weight: bold;
          </property>
         </spacer>
        </item>
+       <item row="5" column="1">
+        <widget class="QPushButton" name="button_save">
+         <property name="text">
+          <string>Save</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="label_2">
+         <property name="text">
+          <string>Filename</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QLineEdit" name="line_filename"/>
+       </item>
       </layout>
      </widget>
     </item>
     <item>
-     <widget class="QWidget" name="plot_widget" native="true">
-      <layout class="QGridLayout" name="gridLayout_2"/>
+     <widget class="QWidget" name="widget" native="true">
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <widget class="ImageView" name="video_images" native="true">
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>150</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QSlider" name="slider_frames">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="ImageView" name="waterfall_image" native="true"/>
+       </item>
+      </layout>
      </widget>
     </item>
    </layout>
@@ -1506,7 +1374,7 @@ font-weight: bold;
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1233</width>
+     <width>1178</width>
      <height>22</height>
     </rect>
    </property>
@@ -1514,37 +1382,21 @@ font-weight: bold;
     <property name="title">
      <string>File</string>
     </property>
-    <addaction name="action_open"/>
+    <addaction name="action_open_video"/>
    </widget>
-   <widget class="QMenu" name="menuWaterfall">
+   <widget class="QMenu" name="menuMetadata">
     <property name="title">
-     <string>Waterfall</string>
+     <string>Metadata</string>
     </property>
-    <addaction name="action_transpose"/>
-    <addaction name="action_background"/>
-    <addaction name="action_setup_roi"/>
-    <addaction name="action_apply_roi"/>
-    <addaction name="action_load_mask"/>
-   </widget>
-   <widget class="QMenu" name="menuMovie">
-    <property name="title">
-     <string>Movie</string>
-    </property>
-    <addaction name="action_open_movie"/>
+    <addaction name="action_show_metadata"/>
    </widget>
    <addaction name="menuFile"/>
-   <addaction name="menuWaterfall"/>
-   <addaction name="menuMovie"/>
+   <addaction name="menuMetadata"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="toolBar">
    <property name="windowTitle">
     <string>toolBar</string>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">QToolButton:hover {background-color:lightgray}
-QToolButton:pressed {background-color:darkgray} 
-</string>
    </property>
    <attribute name="toolBarArea">
     <enum>TopToolBarArea</enum>
@@ -1552,18 +1404,9 @@ QToolButton:pressed {background-color:darkgray}
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
-   <addaction name="action_open"/>
-   <addaction name="action_transpose"/>
-   <addaction name="action_select_intensity"/>
-   <addaction name="action_crop"/>
-   <addaction name="action_background"/>
-   <addaction name="action_denoise"/>
-   <addaction name="action_create_mask"/>
-   <addaction name="action_show_labels"/>
-   <addaction name="action_setup_roi"/>
-   <addaction name="action_apply_roi"/>
+   <addaction name="action_open_video"/>
   </widget>
-  <action name="action_open">
+  <action name="action_open_video">
    <property name="icon">
     <iconset>
      <normaloff>Icons/folder-open-outline.svg</normaloff>Icons/folder-open-outline.svg</iconset>
@@ -1572,139 +1415,23 @@ QToolButton:pressed {background-color:darkgray}
     <string>Open</string>
    </property>
    <property name="toolTip">
-    <string>Open waterfall</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+O</string>
+    <string>Open Video File</string>
    </property>
   </action>
-  <action name="action_transpose">
-   <property name="icon">
-    <iconset>
-     <normaloff>Icons/blueprint_shuffle.svg</normaloff>Icons/blueprint_shuffle.svg</iconset>
-   </property>
+  <action name="action_show_metadata">
    <property name="text">
-    <string>Transpose</string>
-   </property>
-   <property name="toolTip">
-    <string>Transpose waterfall</string>
-   </property>
-  </action>
-  <action name="action_setup_roi">
-   <property name="icon">
-    <iconset>
-     <normaloff>Icons/blueprint_guide.svg</normaloff>Icons/blueprint_guide.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Setup ROI</string>
-   </property>
-   <property name="toolTip">
-    <string>Setup or clear ROI line</string>
-   </property>
-  </action>
-  <action name="action_apply_roi">
-   <property name="icon">
-    <iconset>
-     <normaloff>Icons/blueprint_live.svg</normaloff>Icons/blueprint_live.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Apply ROI</string>
-   </property>
-   <property name="toolTip">
-    <string>Show data iniside ROI</string>
-   </property>
-  </action>
-  <action name="action_background">
-   <property name="icon">
-    <iconset>
-     <normaloff>Icons/bent-blocks_erase.svg</normaloff>Icons/bent-blocks_erase.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Subtract Background</string>
-   </property>
-   <property name="toolTip">
-    <string>Remove Background</string>
-   </property>
-  </action>
-  <action name="action_crop">
-   <property name="icon">
-    <iconset>
-     <normaloff>Icons/bent-blocks_crop.svg</normaloff>Icons/bent-blocks_crop.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Crop</string>
-   </property>
-   <property name="toolTip">
-    <string>Select interesting range</string>
-   </property>
-  </action>
-  <action name="action_denoise">
-   <property name="icon">
-    <iconset>
-     <normaloff>Icons/blueprint_strain.svg</normaloff>Icons/blueprint_strain.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Denoise</string>
-   </property>
-   <property name="toolTip">
-    <string>Denois data with a 1-pixel Gaussian</string>
-   </property>
-  </action>
-  <action name="action_create_mask">
-   <property name="icon">
-    <iconset>
-     <normaloff>Icons/afiado_weld.svg</normaloff>Icons/afiado_weld.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Mask</string>
-   </property>
-   <property name="toolTip">
-    <string>Create binary mask of data</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+M</string>
-   </property>
-  </action>
-  <action name="action_show_labels">
-   <property name="icon">
-    <iconset>
-     <normaloff>Icons/afiado_find.svg</normaloff>Icons/afiado_find.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Explore labelled particles</string>
-   </property>
-   <property name="toolTip">
-    <string>Show Labelled Particles</string>
-   </property>
-  </action>
-  <action name="action_load_mask">
-   <property name="text">
-    <string>Load Mask</string>
-   </property>
-   <property name="toolTip">
-    <string>Load mask from file</string>
-   </property>
-  </action>
-  <action name="action_select_intensity">
-   <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/Icons/Icons/dashing_subtract.svg</normaloff>:/Icons/Icons/dashing_subtract.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Select Normalizing Intensity</string>
-   </property>
-   <property name="toolTip">
-    <string>Region to use as reference intensity</string>
-   </property>
-  </action>
-  <action name="action_open_movie">
-   <property name="text">
-    <string>Open Movie</string>
+    <string>Explore Metadata</string>
    </property>
   </action>
  </widget>
- <resources>
-  <include location="resources.qrc"/>
- </resources>
+ <customwidgets>
+  <customwidget>
+   <class>ImageView</class>
+   <extends>QWidget</extends>
+   <header>pyqtgraph</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
  <connections/>
 </ui>
