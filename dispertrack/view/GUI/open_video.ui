@@ -1270,12 +1270,12 @@ ColorButton::disabled {
           <string>Output Dir</string>
          </property>
          <property name="buddy">
-          <cstring>output_dir</cstring>
+          <cstring>line_output_dir</cstring>
          </property>
         </widget>
        </item>
        <item row="0" column="1">
-        <widget class="QLineEdit" name="output_dir"/>
+        <widget class="QLineEdit" name="line_output_dir"/>
        </item>
        <item row="2" column="0">
         <widget class="QLabel" name="label_3">
@@ -1302,7 +1302,7 @@ ColorButton::disabled {
         </widget>
        </item>
        <item row="3" column="1">
-        <widget class="QCheckBox" name="checkboc_transpose">
+        <widget class="QCheckBox" name="checkbox_transpose">
          <property name="text">
           <string>Transpose</string>
          </property>
@@ -1375,7 +1375,7 @@ ColorButton::disabled {
      <x>0</x>
      <y>0</y>
      <width>1178</width>
-     <height>22</height>
+     <height>24</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -1405,6 +1405,7 @@ ColorButton::disabled {
     <bool>false</bool>
    </attribute>
    <addaction name="action_open_video"/>
+   <addaction name="action_calculate_waterfall"/>
   </widget>
   <action name="action_open_video">
    <property name="icon">
@@ -1421,6 +1422,18 @@ ColorButton::disabled {
   <action name="action_show_metadata">
    <property name="text">
     <string>Explore Metadata</string>
+   </property>
+  </action>
+  <action name="action_calculate_waterfall">
+   <property name="icon">
+    <iconset>
+     <normaloff>Icons/blueprint_live.svg</normaloff>Icons/blueprint_live.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Calculate Waterfall</string>
+   </property>
+   <property name="toolTip">
+    <string>Calculate waterfall</string>
    </property>
   </action>
  </widget>

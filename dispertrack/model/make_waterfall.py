@@ -11,10 +11,13 @@ from dispertrack import config_path
 
 class MakeWaterfall:
     def __init__(self):
-        self.config_file_path = config_path / 'waterfall_config.dat'
+        self.config_file_path = config_path / 'movie_config.dat'
+        last_run = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.contextual_data = {
-            'last_run': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            'make_waterfall_last_run': last_run
             }
+
+        self.data_file = None
 
         if not self.config_file_path.is_file():
             with open(self.config_file_path, 'w') as f:
@@ -23,11 +26,12 @@ class MakeWaterfall:
             try:
                 with open(self.config_file_path, 'r') as f:
                     self.contextual_data = json.load(f)
+                    self.contextual_data.update({'make_waterfall_last_run': last_run})
             except Exception:
                 Warning('There is something wrong with the config file, creating a new one and backing up '
                                  'the old one', UserWarning)
 
-                copy2(self.config_file_path, config_path / '_bkg_waterfall.dat')
+                copy2(self.config_file_path, config_path / '_bkp_movie.dat')
                 with open(self.config_file_path, 'w') as f:
                     json.dump(self.contextual_data, f)
 
@@ -48,21 +52,24 @@ class MakeWaterfall:
         if not filename.is_file():
             raise FileNotFoundError(f'The specified path {filename} does not exist')
 
-        with h5py.File(filename, 'r') as data:
-            metadata = json.loads(data['data']['metadata'][()].decode())
-            timelapse = data['data']['timelapse']
-            movie_data = timelapse[:, :, :metadata['frames']]
-            self.movie_data = movie_data
-            self.movie_metadata = metadata
+        self.data_file = h5py.File(filename, 'r')
+        self.movie_metadata = json.loads(self.data_file['data']['metadata'][()].decode())
+        self.movie_data = self.data_file['data']['timelapse']
+
+        self.contextual_data.update({
+            'last_movie_file': str(filename),
+            'last_movie_directory': str(filename.parents[0])
+            })
 
     def calculate_waterfall(self, transpose=False, axis=1):
         if self.movie_data is None:
             raise KeyError('There is no movie loaded. First load a movie.')
 
+        movie_data = self.movie_data[:, :, :self.movie_metadata['frames']]
         if transpose:
-            self.waterfall = np.sum(self.movie_data.T, axis)
+            self.waterfall = np.sum(movie_data.T, axis)
         else:
-            self.waterfall = np.sum(self.movie_data, axis)
+            self.waterfall = np.sum(movie_data, axis)
 
     def save_waterfall(self, filename, dataset='waterfall'):
         """ Saves the calculated waterfall to the given filename.
@@ -72,22 +79,25 @@ class MakeWaterfall:
         if self.waterfall is None:
             raise Exception('Waterfall was not yet calculated')
 
+        folder = filename.parents[0]
+        folder.mkdir(parents=True, exist_ok=True)
         with h5py.File(filename, 'a') as f:
             if dataset in f:
                 raise KeyError('The waterfall already exists, choose a different name.')
             f.create_dataset(dataset, data=self.waterfall)
 
+        self.contextual_data.update({
+                'last_waterfall_directory': str(folder)
+            })
+
     def unload_movie(self):
-        print('Unloading movie')
-        del self.movie_data
-        del self.movie_metadata
-        del self.waterfall
-        
         self.movie_metadata = None
         self.movie_data = None
         self.waterfall = None
 
     def finalize(self):
         """ This method will be called when finalizing the class, it may be useful to do some clean up, clsoe the
-        opened files, etc."""
-        pass
+        opened files, etc. """
+        self.data_file.close()
+        with open(self.config_file_path, 'w') as f:
+            json.dump(self.contextual_data, f)
