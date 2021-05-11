@@ -14,7 +14,8 @@ class MakeWaterfall:
         self.config_file_path = config_path / 'movie_config.dat'
         last_run = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.contextual_data = {
-            'make_waterfall_last_run': last_run
+            'make_waterfall_last_run': last_run,
+            'waterfall_output_dir': None,
             }
 
         self.data_file = None
@@ -37,15 +38,13 @@ class MakeWaterfall:
 
         self.movie_metadata = None
         self.movie_data = None
+        self.movie_background = None
         self.waterfall = None
 
         atexit.register(self.finalize)
 
     def load_movie(self, filename):
         """ Loads the movie into memory.
-
-        .. warning:: This is a temporary solution, if the file is too large it will not fit into the RAM of the
-        computer.
 
         :param Path filename: Path object pointing to the file
         """
@@ -61,11 +60,60 @@ class MakeWaterfall:
             'last_movie_directory': str(filename.parents[0])
             })
 
-    def calculate_waterfall(self, transpose=False, axis=1):
+    def calculate_movie_background(self, index=0, frames=10):
+        """  Calculates the background for the movie frames using a simple method of the median on a sliding window.
+
+        Parameters
+        ----------
+        index : int
+            Frame index around which to calculate the background
+        frames : int
+            Number of frames used to calculate the background
+
+        Returns
+        -------
+        background : numpy.array
+            The calculated background is a 2D numpy array that can be subtracted from the image
+        """
+        if self.movie_data is None:
+            return
+
+        if index > frames/2:
+            start_frame = index-int(frames/2)
+        else:
+            start_frame = index
+
+        if index + frames/2 < self.movie_metadata['frames']:
+            end_frame = index + int(frames/2)
+        else:
+            end_frame = self.movie_metadata['frames']
+
+        background = np.median(self.movie_data[:, :, start_frame:end_frame], 2)
+        return background
+
+    def calculate_waterfall(self, transpose=False, axis=1, roi=(0, -1)):
+        """
+        .. warning:: This is a temporary solution, if the file is too large it will not fit into the RAM of the
+        computer.
+
+        Parameters
+        ----------
+        transpose : bool
+            Whether the movie data is transposed before calculating the waterfall
+        axis : int
+            The axis that will be used in numpy sum (this is related to whether images are stored in colum-major or
+            row-major order
+        roi : tuple
+            The min and max pixel to crop the movie data before calculating the waterfall
+
+        Returns
+        -------
+
+        """
         if self.movie_data is None:
             raise KeyError('There is no movie loaded. First load a movie.')
 
-        movie_data = self.movie_data[:, :, :self.movie_metadata['frames']]
+        movie_data = self.movie_data[:, roi[0]:roi[1], :self.movie_metadata['frames']]
         if transpose:
             self.waterfall = np.sum(movie_data.T, axis)
         else:
@@ -87,7 +135,7 @@ class MakeWaterfall:
             f.create_dataset(dataset, data=self.waterfall)
 
         self.contextual_data.update({
-                'last_waterfall_directory': str(folder)
+                'waterfall_output_dir': str(folder)
             })
 
     def unload_movie(self):

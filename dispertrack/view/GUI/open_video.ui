@@ -1257,17 +1257,23 @@ ColorButton::disabled {
    <layout class="QHBoxLayout" name="horizontalLayout">
     <item>
      <widget class="QWidget" name="settings_widget" native="true">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="maximumSize">
        <size>
         <width>250</width>
         <height>16777215</height>
        </size>
       </property>
-      <layout class="QFormLayout" name="formLayout">
+      <layout class="QGridLayout" name="gridLayout">
        <item row="0" column="0">
         <widget class="QLabel" name="label">
          <property name="text">
-          <string>Output Dir</string>
+          <string>Output</string>
          </property>
          <property name="buddy">
           <cstring>line_output_dir</cstring>
@@ -1275,7 +1281,46 @@ ColorButton::disabled {
         </widget>
        </item>
        <item row="0" column="1">
-        <widget class="QLineEdit" name="line_output_dir"/>
+        <widget class="QWidget" name="widget_2" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">padding: 0; margin: 0;</string>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout_2">
+          <item>
+           <widget class="QLineEdit" name="line_output_dir"/>
+          </item>
+          <item>
+           <widget class="QPushButton" name="button_select_folder">
+            <property name="styleSheet">
+             <string notr="true">border-width: 0;</string>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+            <property name="icon">
+             <iconset>
+              <normaloff>Icons/folder-open-outline.svg</normaloff>Icons/folder-open-outline.svg</iconset>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="label_2">
+         <property name="text">
+          <string>Filename</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QLineEdit" name="line_filename"/>
        </item>
        <item row="2" column="0">
         <widget class="QLabel" name="label_3">
@@ -1328,16 +1373,6 @@ ColorButton::disabled {
          </property>
         </widget>
        </item>
-       <item row="1" column="0">
-        <widget class="QLabel" name="label_2">
-         <property name="text">
-          <string>Filename</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="1">
-        <widget class="QLineEdit" name="line_filename"/>
-       </item>
       </layout>
      </widget>
     </item>
@@ -1345,7 +1380,7 @@ ColorButton::disabled {
      <widget class="QWidget" name="widget" native="true">
       <layout class="QVBoxLayout" name="verticalLayout">
        <item>
-        <widget class="ImageView" name="video_images" native="true">
+        <widget class="CameraView" name="video_images" native="true">
          <property name="maximumSize">
           <size>
            <width>16777215</width>
@@ -1362,7 +1397,7 @@ ColorButton::disabled {
         </widget>
        </item>
        <item>
-        <widget class="ImageView" name="waterfall_image" native="true"/>
+        <widget class="CameraView" name="waterfall_image" native="true"/>
        </item>
       </layout>
      </widget>
@@ -1439,9 +1474,9 @@ ColorButton::disabled {
  </widget>
  <customwidgets>
   <customwidget>
-   <class>ImageView</class>
+   <class>CameraView</class>
    <extends>QWidget</extends>
-   <header>pyqtgraph</header>
+   <header>experimentor</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
