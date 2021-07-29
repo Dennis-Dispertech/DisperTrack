@@ -18,7 +18,7 @@ class MovieWindow(QMainWindow):
 
         self.movie_model = MakeWaterfall()
 
-        if 'waterfall_output_dir' in self.movie_model.contextual_data:
+        if 'last_waterfall_directory' in self.movie_model.contextual_data:
             self.line_output_dir.setText(self.movie_model.contextual_data['last_waterfall_directory'])
         else:
             self.line_output_dir.setText(str(home_path))
