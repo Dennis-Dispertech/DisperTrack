@@ -8,7 +8,7 @@ from PyQt5.QtCore import QRect
 from PyQt5.QtWidgets import QDialog, QFileDialog, QMainWindow, QMessageBox
 
 from dispertrack import home_path
-from dispertrack.model.anlyze_waterfall import AnalyzeWaterfall
+from dispertrack.model.analyze_waterfall import AnalyzeWaterfall
 from dispertrack.view import view_folder
 
 import pyqtgraph as pg

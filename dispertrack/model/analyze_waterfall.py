@@ -1,22 +1,18 @@
 import atexit
 import json
-import pickle
 from datetime import datetime
 from shutil import copy2
 
+import h5py
 import numpy as np
+import pandas as pd
 import scipy as sp
 import scipy.ndimage
-
-import pandas as pd
-
-import h5py
-from scipy.ndimage import correlate1d
+from scipy.ndimage import correlate1d, median_filter
 from skimage import measure, morphology
 
 from dispertrack import config_path
 from dispertrack.model.displacement import msd_iter
-from dispertrack.model.exceptions import WrongDataFormat
 from dispertrack.model.find import find_peaks1d
 from dispertrack.model.refine import refine_positions
 from dispertrack.model.util import gaussian_kernel
@@ -59,7 +55,7 @@ class AnalyzeWaterfall:
                     self.contextual_data = json.load(f)
             except Exception:
                 Warning('There is something wrong with the config file, creating a new one and backing up '
-                                 'the old one', UserWarning)
+                        'the old one', UserWarning)
 
                 copy2(self.config_file_path, config_path / '_bkg_waterfall.dat')
                 with open(self.config_file_path, 'w') as f:
@@ -124,9 +120,21 @@ class AnalyzeWaterfall:
 
         self.coupled_intensity = np.mean(self.waterfall[:, min_pixel:max_pixel])
 
-    def calculate_background(self, axis=1, sigma=25):
-        self.bkg = sp.ndimage.gaussian_filter1d(self.waterfall, axis=axis, sigma=sigma)
-        self.corrected_data = (self.waterfall.astype(np.float) - self.bkg).clip(0, 2 ** 16 - 1).astype(np.uint16)
+    def calculate_background(self, axis=1, sigma=10):
+        """ Defines the background as the median intensity over a number of frames prior to the current frame. In
+        this way we do not subtract the signal of the particle from the particle itself. If particles are too close
+        to each other, however, this may give some problems. Using the median instead of the mean overcomes some of
+        the problems of using particle data to define background.
+
+        """
+
+        # self.bkg = sp.ndimage.gaussian_filter1d(self.waterfall, axis=axis, sigma=sigma)
+        self.bkg = np.zeros_like(self.waterfall)
+        for i in range(self.waterfall.shape[axis]):
+            self.bkg[:, i] = sp.ndimage.median_filter(self.waterfall[:, i], sigma)
+        self.bkg = np.roll(self.bkg, sigma, axis=0)
+        self.corrected_data = self.waterfall - self.bkg
+        self.corrected_data[self.waterfall < self.bkg] = 0
 
     def denoise(self, sigma=(0, 1), truncate=4.0):
         if self.corrected_data is not None:
@@ -147,11 +155,11 @@ class AnalyzeWaterfall:
         .. warning:: This only works for getting slices across the entire image, partial slices require another approach
         """
         data = self.corrected_data if self.corrected_data is not None else self.waterfall
-        slope = -data.shape[0]/(stop-start)
+        slope = -data.shape[0] / (stop - start)
         offset = data.shape[0]
-        cropped_data = np.zeros((2*width+1, stop-start))
-        for i in range(stop-start):
-            center = int(i*slope) + offset
+        cropped_data = np.zeros((2 * width + 1, stop - start))
+        for i in range(stop - start):
+            center = int(i * slope) + offset
             cropped_data[0, :] = center
             if width > center:
                 cropped_data[1:, i] = np.nan
@@ -159,7 +167,7 @@ class AnalyzeWaterfall:
             if center > data.shape[0] - width:
                 cropped_data[1:, i] = np.nan
                 continue
-            d = data[center-width:center+width, start+i]
+            d = data[center - width:center + width, start + i]
             cropped_data[1:, i] = d
 
         return cropped_data.T
@@ -173,7 +181,7 @@ class AnalyzeWaterfall:
 
         min_frame = np.min(coord[:, 1])
         max_frame = np.max(coord[:, 1])
-        cropped_data = np.zeros((2*width+1, max_frame-min_frame))
+        cropped_data = np.zeros((2 * width + 1, max_frame - min_frame))
         for i, f in enumerate(range(min_frame, max_frame)):
             pixels = coord[coord[:, 1] == f, 0]
             if len(pixels) > 1:
@@ -218,7 +226,7 @@ class AnalyzeWaterfall:
     def calculate_diffusion(self, center, position):
 
         # Transform to 'absolute' position
-        position = position+center
+        position = position + center
 
         X = np.arange(len(center))
         fit = np.polyfit(X, center, 1)
@@ -226,14 +234,14 @@ class AnalyzeWaterfall:
         # Remove the drift by subtracting a first-order fit to the center position.
 
         position = position - np.polyval(fit, X)
-        lagtimes = np.arange(1, int(len(position)/2))
+        lagtimes = np.arange(1, int(len(position) / 2))
         MSD = pd.DataFrame(msd_iter(position, lagtimes=lagtimes), columns=['MD', 'MSD'], index=lagtimes)
         return MSD
 
     def calculate_mask(self, threshold, min_size=0, max_gap=0):
         self.metadata['mask_threshold'] = threshold
         self.metadata['mask_min_size'] = min_size
-        self.metadata['mask_max_gap'] = min_size
+        self.metadata['mask_max_gap'] = max_gap
 
         self.mask = self.corrected_data > threshold
         if min_size > 0:
@@ -355,9 +363,10 @@ k_b = 1.38E-23
 T = 300
 eta = 0.0009532
 
+
 def H(λ):
     return (1 - λ) ** 2 * (1 - 2.104 * λ + 2.09 * λ ** 3 - 0.95 * λ ** 5)
 
-x = np.linspace(5/670, 200/670, 400)
-y = H(x)
 
+x = np.linspace(5 / 670, 200 / 670, 400)
+y = H(x)

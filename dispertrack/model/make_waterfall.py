@@ -7,6 +7,7 @@ from shutil import copy2
 import h5py
 
 from dispertrack import config_path
+from dispertrack.model.util import fitgaussian
 
 
 class MakeWaterfall:
@@ -59,6 +60,43 @@ class MakeWaterfall:
             'last_movie_file': str(filename),
             'last_movie_directory': str(filename.parents[0])
             })
+
+    def calculate_region_of_interest(self, index=0, frames=10, sigmas=1):
+        """ Calculates the region of interest by adding all the pixels along the fiber direction, fitting a gaussian
+        to the profile and returning the min and max pixel that fall within the number of sigmas.
+
+        Parameters
+        ----------
+        index : int
+            Frame from which to start calculating
+        frames : int
+            Number of frames used for averaging
+        sigmas : int
+            Number of sigmas around the gaussian peak to consider for the region of interest
+
+        Returns
+        -------
+        min_pix : int
+            Minimum pixel line of the ROI
+        max_pix : int
+            Maximum pixel line of the ROI
+        """
+
+        if self.movie_data is None:
+            raise Exception("Movie not loaded")
+
+        if index + frames > self.movie_metadata['frames']:
+            raise Exception("Not enough frames to perform this operation")
+
+        cross_section = np.sum(np.mean(self.movie_data[:, :, index:index+frames], 2), 0)
+        p0 = [
+            np.max(cross_section)-np.min(cross_section),
+            np.argwhere(cross_section == np.max(cross_section))[0][0],
+            len(cross_section)/10,
+            np.min(cross_section)]
+        params = fitgaussian(cross_section, p0)
+
+        return np.int(params[1]-sigmas*params[2]), np.int(params[1]+sigmas*params[2])
 
     def calculate_movie_background(self, index=0, frames=10):
         """  Calculates the background for the movie frames using a simple method of the median on a sliding window.
