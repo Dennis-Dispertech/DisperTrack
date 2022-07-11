@@ -41,6 +41,7 @@ class MakeWaterfall:
         self.movie_data = None
         self.movie_background = None
         self.waterfall = None
+        self.roi = None  # Tuple to hold the min/max pixel to calculate the waterfall
 
         atexit.register(self.finalize)
 
@@ -96,6 +97,8 @@ class MakeWaterfall:
             np.min(cross_section)]
         params = fitgaussian(cross_section, p0)
 
+        self.roi = np.int(params[1]-sigmas*params[2]), np.int(params[1]+sigmas*params[2])
+
         return np.int(params[1]-sigmas*params[2]), np.int(params[1]+sigmas*params[2])
 
     def calculate_movie_background(self, index=0, frames=10):
@@ -129,7 +132,7 @@ class MakeWaterfall:
         background = np.median(self.movie_data[:, :, start_frame:end_frame], 2)
         return background
 
-    def calculate_waterfall(self, transpose=False, axis=1, roi=(0, -1)):
+    def calculate_waterfall(self, transpose=False, axis=1, roi=None):
         """
         .. warning:: This is a temporary solution, if the file is too large it will not fit into the RAM of the
         computer.
@@ -142,7 +145,8 @@ class MakeWaterfall:
             The axis that will be used in numpy sum (this is related to whether images are stored in colum-major or
             row-major order
         roi : tuple
-            The min and max pixel to crop the movie data before calculating the waterfall
+            The min and max pixel to crop the movie data before calculating the waterfall.
+            If not specified it will use the ROI stored in self.roi
 
         Returns
         -------
@@ -151,6 +155,9 @@ class MakeWaterfall:
         if self.movie_data is None:
             raise KeyError('There is no movie loaded. First load a movie.')
 
+        if roi is None:
+            if (roi := self.roi) is None:
+                raise KeyError('You need to either supply a ROI or calculate one using calculate_region_of_interest')
         movie_data = self.movie_data[:, roi[0]:roi[1], :self.movie_metadata['frames']]
         if transpose:
             self.waterfall = np.sum(movie_data.T, axis)
