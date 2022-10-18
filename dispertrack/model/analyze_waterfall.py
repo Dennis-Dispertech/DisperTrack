@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import scipy as sp
 import scipy.ndimage
+from numpy.linalg import LinAlgError
 from scipy.ndimage import correlate1d, median_filter
 from skimage import measure, morphology
 
@@ -238,13 +239,23 @@ class AnalyzeWaterfall:
 
         # Transform to 'absolute' position
         position = position + center
+        position = position[~np.isnan(position)]
+        try:
+            X = np.arange(len(position))
+            fit = np.polyfit(X, position, 3)
+        except LinAlgError:
+            print(position)
+            print(center)
+            raise
 
-        X = np.arange(len(center))
-        fit = np.polyfit(X, center, 1)
 
         # Remove the drift by subtracting a first-order fit to the center position.
 
         position = position - np.polyval(fit, X)  # position is still in pixels I think
+        fiber_width_pixl = 412
+        fiber_width = 180E-6
+        pixl = fiber_width / fiber_width_pixl
+        position = position*pixl
         lagtimes = np.arange(1, int(len(position) / 2))  # delta t in frames
         MSD = pd.DataFrame(msd_iter(position, lagtimes=lagtimes), columns=['MD', 'MSD'], index=lagtimes)
         return MSD
@@ -341,13 +352,14 @@ class AnalyzeWaterfall:
         pixl = fiber_width / fiber_width_pixl  # ~ 0.44 um per pixel
         pixl_um = pixl * 1E6
 
-        lagtimes = 5E-3 * np.arange(1, 5)
+        # lagtimes = 5E-3 * np.arange(1, 5)
         lagtimes = np.arange(1, 5) / fps
 
         for particle in self.file['mask/particles'].keys():
             data = self.file['mask/particles'][particle][:]
             MSD = self.calculate_diffusion(data[2, :], data[0, :])
-            fit = np.polyfit(lagtimes, pixl**2 * MSD['MSD'].array[:len(lagtimes)], 2)
+            fit = np.polyfit(lagtimes, MSD['MSD'].array[:len(lagtimes)], 2)
+            # fit = np.polyfit(lagtimes, pixl**2 * MSD['MSD'].array[:len(lagtimes)], 1)
             attrs = self.file['mask/particles'][particle].attrs
             if attrs['valid'] == 0:
                 continue
@@ -362,7 +374,7 @@ class AnalyzeWaterfall:
         diffusion = np.zeros(len(self.particles))
         # self.d = np.ones_like(diffusion) * 20E-9
         # d = sympy.symbols('d')
-        self.r = np.ones_like(diffusion) * 20E-9
+        self.r = np.ones_like(diffusion) * 20E-9  # starting values for gradient descent fitting
         r = sympy.symbols('r')
         C = 560E-9  # core diameter
         T = 300
@@ -377,14 +389,14 @@ class AnalyzeWaterfall:
             f = (1 - 2*r / C) ** 2 * (1 - 2.104 * (2*r / C) + 2.09 * (2*r / C) ** 3 - 0.95 * (2*r / C) ** 5) - (2*r * diffusion[i] * 3 * np.pi * eta / (k_b * T))
             f_deriv = f.diff(r)
             f_err = []
-            for j in range(25):
+            for j in range(25):  # gradient descent fitting
                 # self.d[i] -= np.float64(f.evalf(subs={d: self.d[i]})) / np.float64(f_deriv.evalf(subs={d: self.d[i]}))
                 self.r[i] -= np.float64(f.evalf(subs={r: self.r[i]})) / np.float64(f_deriv.evalf(subs={r: self.r[i]}))
                 f_err.append(f.evalf(subs={r: self.r[i]}))
             self.F_ERR.append(f_err)
 
         # self.d = k_b * T / (3 * np.pi * eta * diffusion[diffusion > 0]/H(60/560))
-        # self.r = 2 * k_b * T / (6 * np.pi * eta * diffusion[diffusion > 0] / H(70 / 670) * 1E-12)
+        # self.r = 2 * k_b * T / (6 * np.pi * eta * diffusion[diffusion > 0] / H(70 / 560))
         self.mean_intensity = mean_intensity[diffusion > 0]
         self.diffusion_coefficient = diffusion[diffusion > 0]
 

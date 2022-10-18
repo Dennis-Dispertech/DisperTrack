@@ -163,11 +163,13 @@ class ParticleWindow(QMainWindow):
         pixl_um = pixl * 1E6
         fps = self.analyze_model.meta['fps']
 
+        # msd_plot.plot(x, self.MSD['MSD'].array, pen=None, symbol='o')
         msd_plot.plot(x / fps, pixl_um**2 * self.MSD['MSD'].array, pen=None, symbol='o')
         msd_plot.setLogMode(True, True)
         msd_plot.setTitle('diffusion')
 
-        fit = np.polyfit(x[:10] / fps, pixl_um**2 * self.MSD['MSD'][:10], 2)
+        # fit = np.polyfit(x[:10], self.MSD['MSD'][:10], 2)
+        fit = np.polyfit(x[:10] / fps, pixl_um ** 2 * self.MSD['MSD'][:10], 2)
         info = f'D: {fit[1]/2:2.2f}um^2/s\n V: {np.sqrt(fit[0])}um/s\n O: {fit[2]}'
         self.diffusion_information.setText(info)
 
