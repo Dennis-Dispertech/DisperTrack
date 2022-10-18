@@ -15,7 +15,10 @@ class ParticleWindow(QMainWindow):
 
         if particle_number is not None:
             self.setWindowTitle(f'Single-Particle Analysis - pcle {particle_number}')
-            self.line_current_particle.setText(str(particle_number))
+            if props is None:
+                self.line_current_particle.setText(str(particle_number))
+            else:
+                self.line_current_particle.setText(f'{particle_number}/{len(props)}')
 
         self.analyze_model = analyze_model
 
@@ -68,7 +71,7 @@ class ParticleWindow(QMainWindow):
             self.button_next.setEnabled(False)
             self.save_all_timer.stop()
             return
-        if self.particle_num + 1 <= len(self.props):
+        if self.particle_num + 1 < len(self.props):
             try:
                 self.save_label_data()
             except ValueError:
@@ -77,7 +80,8 @@ class ParticleWindow(QMainWindow):
             self.check_valid.setCheckState(True)
             self.calculate_particle_data()
             self.setWindowTitle(f'Single-Particle Analysis - pcle {self.particle_num}')
-            self.line_current_particle.setText(str(self.particle_num))
+            # self.line_current_particle.setText(str(self.particle_num))
+            self.line_current_particle.setText(f'{self.particle_num}/{len(self.props)}')
             if self.particle_num + 1 > len(self.props):
                 self.button_next.setEnabled(False)
         else:
@@ -93,7 +97,8 @@ class ParticleWindow(QMainWindow):
             self.particle_num -= 1
             self.calculate_particle_data()
             self.setWindowTitle(f'Single-Particle Analysis - pcle {self.particle_num}')
-            self.line_current_particle.setText(str(self.particle_num))
+            # self.line_current_particle.setText(str(self.particle_num))
+            self.line_current_particle.setText(f'{self.particle_num}/{len(self.props)}')
             if self.particle_num == 0:
                 self.button_previous.setEnabled(False)
         else:
@@ -146,14 +151,23 @@ class ParticleWindow(QMainWindow):
         pi.clear()
         x = np.arange(0, len(self.positions))
         pi.plot(x[self.positions > 0], self.positions[self.positions > 0])
+        pi.setTitle('position')
 
         msd_plot = self.widget_diffusion.getPlotItem()
         msd_plot.clear()
         x = 5E-3*np.arange(1, int(len(self.positions)/2))
-        msd_plot.plot(x, self.MSD['MSD'].array, pen=None, symbol='o')
-        msd_plot.setLogMode(True, True)
 
-        fit = np.polyfit(x[:10], self.MSD['MSD'][:10], 2)
+        fiber_width_pixl = 412
+        fiber_width = 180E-6
+        pixl = fiber_width / fiber_width_pixl   # ~ 0.44 um per pixel
+        pixl_um = pixl * 1E6
+        fps = self.analyze_model.meta['fps']
+
+        msd_plot.plot(x / fps, pixl_um**2 * self.MSD['MSD'].array, pen=None, symbol='o')
+        msd_plot.setLogMode(True, True)
+        msd_plot.setTitle('diffusion')
+
+        fit = np.polyfit(x[:10] / fps, pixl_um**2 * self.MSD['MSD'][:10], 2)
         info = f'D: {fit[1]/2:2.2f}um^2/s\n V: {np.sqrt(fit[0])}um/s\n O: {fit[2]}'
         self.diffusion_information.setText(info)
 
@@ -162,21 +176,25 @@ class ParticleWindow(QMainWindow):
         pi.clear()
         x = np.arange(0, len(self.intensities[self.intensities > 0]))
         pi.plot(x, self.intensities[self.intensities > 0])
+        pi.setTitle('intensity')
 
         hi = self.widget_intensity_histogram.getPlotItem()
         hi.clear()
         intensity = self.intensities
         if self.analyze_model.coupled_intensity is not None:
             intensity /= self.analyze_model.coupled_intensity
+            print('normalized')
         intensity = np.power(intensity[~np.isnan(intensity)], 1/6)
         bins = np.linspace(np.nanmin(intensity), np.nanmax(intensity), 20)
         y, x = np.histogram(intensity, bins=bins)
 
         hi.plot(x, y, stepMode=True, fillLevel=0, brush=(0, 125, 125, 150))
+        hi.setTitle('intensity histogram')
 
     def update_1d_plot(self, frame):
         self.widget_1d_plot.clear()
         self.widget_1d_plot.plot(self.data[frame])
+
         if np.isnan(self.data[frame][round(self.positions[frame])]):
             return
 

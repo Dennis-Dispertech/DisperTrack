@@ -1287,13 +1287,13 @@ ColorButton::disabled {
          </property>
          <property name="minimumSize">
           <size>
-           <width>10</width>
+           <width>30</width>
            <height>0</height>
           </size>
          </property>
          <property name="maximumSize">
           <size>
-           <width>50</width>
+           <width>60</width>
            <height>16777215</height>
           </size>
          </property>
@@ -1622,7 +1622,7 @@ border{
      <x>0</x>
      <y>0</y>
      <width>1027</width>
-     <height>24</height>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuParticle">

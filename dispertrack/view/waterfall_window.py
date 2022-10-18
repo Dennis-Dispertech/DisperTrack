@@ -127,7 +127,10 @@ class WaterfallWindow(QMainWindow):
             self.ROI_line = pg.LineSegmentROI([(0, 0), (image.shape[0], 0)])
 
         self.waterfall_image.autoRange()
-        self.waterfall_image.autoLevels()
+        if image.dtype == bool:
+            self.waterfall_image.autoLevels()
+        else:
+            self.waterfall_image.setLevels(image.min(), np.percentile(image, 99))
 
     def calculate_coupled_intensity(self):
         x = [self.hline1.value(), self.hline2.value()]
