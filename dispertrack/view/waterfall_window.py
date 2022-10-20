@@ -19,6 +19,8 @@ from dispertrack.view.particle_window import ParticleWindow
 
 import dispertrack.view.GUI.resources_rc
 
+import matplotlib.pyplot as plt
+
 class WaterfallWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -127,7 +129,10 @@ class WaterfallWindow(QMainWindow):
             self.ROI_line = pg.LineSegmentROI([(0, 0), (image.shape[0], 0)])
 
         self.waterfall_image.autoRange()
-        self.waterfall_image.autoLevels()
+        if image.dtype == bool:
+            self.waterfall_image.autoLevels()
+        else:
+            self.waterfall_image.setLevels(image.min(), np.percentile(image, 99))
 
     def calculate_coupled_intensity(self):
         x = [self.hline1.value(), self.hline2.value()]
@@ -216,8 +221,13 @@ class WaterfallWindow(QMainWindow):
         self.particle_windows[-1].show()
 
     def show_histogram_window(self):
-        self.histogram_window = HistogramWindow(self.analyze_model)
-        self.histogram_window.show()
+        # self.histogram_window = HistogramWindow(self.analyze_model)
+        # self.histogram_window.show()
+        self.analyze_model.calculate_particle_properties()
+        d = 2 * self.analyze_model.r / 1e-9
+        plt.hist(d, 40)
+        plt.xlabel('particle diameter (nm)')
+        plt.title('particle size histogram')
 
 if __name__ == '__main__':
     from PyQt5.QtWidgets import QApplication

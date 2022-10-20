@@ -12,4 +12,8 @@ def start_analysis():
 
 
 if __name__ == '__main__':
-    start_analysis()
+    # start_analysis()
+    app = QApplication([])
+    win = WaterfallWindow()
+    win.show()
+    app.exec()
