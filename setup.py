@@ -12,5 +12,11 @@ setup(
     packages=find_packages('.'),
     package_data={
         "": ['GUI/*.ui', 'GUI/Icons/*.svg', 'GUI/Icons/*.png']
-        }
+        },
+    entry_points = {'console_scripts':
+        ['dispertech=dispertrack:start_analysis']
+        },
+    install_requires=[
+        'pandas',
+        ]
     )
