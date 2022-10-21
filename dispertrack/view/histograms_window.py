@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import QMainWindow
 from dispertrack.view import view_folder
 import matplotlib.pyplot as plt
 
+
 class HistogramWindow(QMainWindow):
     def __init__(self, analyze_model):
         super(HistogramWindow, self).__init__()

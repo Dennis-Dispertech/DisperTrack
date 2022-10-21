@@ -7,7 +7,6 @@ import h5py
 import numpy as np
 import pandas as pd
 import scipy as sp
-import scipy.ndimage
 from numpy.linalg import LinAlgError
 from scipy.ndimage import correlate1d, median_filter
 from skimage import measure, morphology
@@ -16,9 +15,10 @@ from dispertrack import config_path
 from dispertrack.model.displacement import msd_iter
 from dispertrack.model.find import find_peaks1d
 from dispertrack.model.refine import refine_positions
-from dispertrack.model.util import gaussian_kernel
+from dispertrack.model.util import d_r, gaussian_kernel, H, r_d
 
 import sympy
+
 
 class AnalyzeWaterfall:
     def __init__(self):
@@ -28,6 +28,7 @@ class AnalyzeWaterfall:
         self.mask = None
         self.filtered_props = []
         self.coupled_intensity = None
+        self.pcle_data = {}
 
         self.metadata = {
             'start_frame': None,
@@ -139,14 +140,13 @@ class AnalyzeWaterfall:
 
     def calculate_background(self, axis=None, sigma=10):
         self.bkg = np.zeros_like(self.waterfall)
-        # for column in range(sigma, self.waterfall.shape[0]):
-        #     self.bkg[column, :] = sp.ndimage.median_filter(self.waterfall[column, :], sigma)
-        for row in range(sigma, self.waterfall.shape[1]):
-            self.bkg[:, row] = np.median(self.waterfall[:, row-sigma:row], axis=1)
-        self.bkg[:, :sigma] = np.tile(np.median(self.waterfall[:, :sigma], axis=1)[:,None], (1, sigma))
+        for column in range(sigma, self.waterfall.shape[0]):
+            self.bkg[column, :] = sp.ndimage.median_filter(self.waterfall[column, :], sigma)
+        # for row in range(sigma, self.waterfall.shape[1]):
+        #     self.bkg[:, row] = np.median(self.waterfall[:, row-sigma:row], axis=1)
+        # self.bkg[:, :sigma] = np.tile(np.median(self.waterfall[:, :sigma], axis=1)[:,None], (1, sigma))
         self.corrected_data = self.waterfall - self.bkg
         self.corrected_data[self.waterfall < self.bkg] = 0
-
 
     def denoise(self, sigma=(0, 1), truncate=4.0):
         if self.corrected_data is not None:
@@ -218,6 +218,19 @@ class AnalyzeWaterfall:
         ----------
         data : numpy.array
             It should be a rectangular image, resulting from cropping the waterfall around a bright peak.
+        separation : int
+            value passed directly to `find_peaks`
+        radius : int
+            value passed directly to `refine_positions`
+        threshold : int
+            value passed directly to `find_peaks`
+
+        Returns
+        -------
+        intensities : np.array
+            the output of `refine_positions`
+        positions : np.array
+            the output of `refine_positions
         """
 
         frames = np.max(data.shape)
@@ -235,27 +248,25 @@ class AnalyzeWaterfall:
 
         return intensities, positions
 
-    def calculate_diffusion(self, center, position):
+    @staticmethod
+    def calculate_diffusion(center, position):
 
         # Transform to 'absolute' position
         position = position + center
-        position = position[~np.isnan(position)]
+        X = np.arange(len(position))
+        X = X[~np.isnan(position)]
+        clean_position = position[~np.isnan(position)]
         try:
-            X = np.arange(len(position))
-            fit = np.polyfit(X, position, 3)
+            fit = np.polyfit(X, clean_position, 1)
         except LinAlgError:
             print(position)
             print(center)
             raise
 
-
         # Remove the drift by subtracting a first-order fit to the center position.
 
-        position = position - np.polyval(fit, X)  # position is still in pixels I think
-        fiber_width_pixl = 412
-        fiber_width = 180E-6
-        pixl = fiber_width / fiber_width_pixl
-        position = position*pixl
+        position = position - np.polyval(fit, np.arange(len(position)))
+
         lagtimes = np.arange(1, int(len(position) / 2))  # delta t in frames
         MSD = pd.DataFrame(msd_iter(position, lagtimes=lagtimes), columns=['MD', 'MSD'], index=lagtimes)
         return MSD
@@ -275,6 +286,7 @@ class AnalyzeWaterfall:
 
     def label_mask(self, min_len=100):
         """ Label the mask and remove those tracks that have fewer than a minimum number of frames in them.
+        The data of the label is stored as `filtered_props`
         """
         self.metadata['mask_min_length'] = min_len
 
@@ -286,7 +298,45 @@ class AnalyzeWaterfall:
             if np.max(p.coords[:, 1]) - np.min(p.coords[:, 1]) >= min_len:
                 filtered_props.append(p.coords)
 
-        self.filtered_props = filtered_props
+        self.filtered_props = filtered_props[1:]
+
+    def analyze_traces(self, width=40, radius=7, separation=20, threshold=50):
+        if self.filtered_props is None:
+            raise Exception('First particles must be labelled')
+
+        calibration = self.meta.get('calibration', 0.44)  # um/px uses a default value in case it was not defined
+
+        self.pcle_data = {}
+        for i, data in enumerate(self.filtered_props):
+            sliced_data = self.calculate_slice_from_label(data, width)
+            intensities, positions = self.calculate_intensities_cropped(sliced_data[:, 1:], separation, radius, threshold)
+            positions = positions * calibration
+            MSD = self.calculate_diffusion(sliced_data[:, 0], positions)
+            self.pcle_data.update({
+                i: {'intensity': intensities, 'position': positions, 'MSD': MSD}
+                })
+
+    def calculate_particle_properties(self):
+        C = self.meta.get('channel_diameter', 560E-9)
+        bkg_intensity = np.mean(self.waterfall[:, :10])
+
+        fps = self.meta['fps']
+        lagtimes = np.arange(1, 5) / fps
+
+        for p, pcle_data in self.pcle_data.items():
+            MSD = pcle_data['MSD']
+            fit = np.polyfit(lagtimes, MSD['MSD'].array[:len(lagtimes)], 1)
+            m_i = np.nanmean(pcle_data['intensity'] / bkg_intensity)
+            self.pcle_data[p].update({
+                'mean_intensity': m_i,
+                'D': fit,
+                })
+
+            X = np.linspace(1E-9, C/2, 500)
+            to_minimize = d_r(X) / H(X, C) - fit[0]
+            r = X[np.argmin(to_minimize)]
+
+            self.pcle_data[p].update({'r': r})
 
     def save_particle_label(self, data, metadata, particle_num):
         if self.mask is not None:
@@ -341,65 +391,6 @@ class AnalyzeWaterfall:
             pcle.create_dataset('metadata', data=json.dumps(metadata))
             return particle_num
 
-    def calculate_particle_properties(self):
-        bkg_intensity = np.mean(self.waterfall[:, :10])
-        self.particles = {}
-
-        fps = self.meta['fps']
-
-        fiber_width_pixl = 412
-        fiber_width = 180E-6
-        pixl = fiber_width / fiber_width_pixl  # ~ 0.44 um per pixel
-        pixl_um = pixl * 1E6
-
-        # lagtimes = 5E-3 * np.arange(1, 5)
-        lagtimes = np.arange(1, 5) / fps
-
-        for particle in self.file['mask/particles'].keys():
-            data = self.file['mask/particles'][particle][:]
-            MSD = self.calculate_diffusion(data[2, :], data[0, :])
-            fit = np.polyfit(lagtimes, MSD['MSD'].array[:len(lagtimes)], 2)
-            # fit = np.polyfit(lagtimes, pixl**2 * MSD['MSD'].array[:len(lagtimes)], 1)
-            attrs = self.file['mask/particles'][particle].attrs
-            if attrs['valid'] == 0:
-                continue
-            m_i = np.nanmean(np.power(data[1, :] / bkg_intensity, 1 / 6))
-            self.particles[particle] = {
-                'data': data,
-                'mean_intensity': m_i,
-                'D': fit,
-                }
-
-        mean_intensity = np.zeros(len(self.particles))
-        diffusion = np.zeros(len(self.particles))
-        # self.d = np.ones_like(diffusion) * 20E-9
-        # d = sympy.symbols('d')
-        self.r = np.ones_like(diffusion) * 20E-9  # starting values for gradient descent fitting
-        r = sympy.symbols('r')
-        C = 560E-9  # core diameter
-        T = 300
-        k_b = 1.380649E-23
-        eta = 0.0009532
-        self.F_ERR=[]
-        for i, values in enumerate(self.particles.values()):
-            mean_intensity[i] = values['mean_intensity']
-            diffusion[i] = values['D'][1] / 2
-            # f = (1 - d/C)**2 * (1 - 2.104*(d/C) + 2.09*(d/C)**3 - 0.95*(d/C)**5) - (d * diffusion[i] * 3*np.pi*eta/(k_b*T) )
-            # f_deriv = f.diff(d)
-            f = (1 - 2*r / C) ** 2 * (1 - 2.104 * (2*r / C) + 2.09 * (2*r / C) ** 3 - 0.95 * (2*r / C) ** 5) - (2*r * diffusion[i] * 3 * np.pi * eta / (k_b * T))
-            f_deriv = f.diff(r)
-            f_err = []
-            for j in range(25):  # gradient descent fitting
-                # self.d[i] -= np.float64(f.evalf(subs={d: self.d[i]})) / np.float64(f_deriv.evalf(subs={d: self.d[i]}))
-                self.r[i] -= np.float64(f.evalf(subs={r: self.r[i]})) / np.float64(f_deriv.evalf(subs={r: self.r[i]}))
-                f_err.append(f.evalf(subs={r: self.r[i]}))
-            self.F_ERR.append(f_err)
-
-        # self.d = k_b * T / (3 * np.pi * eta * diffusion[diffusion > 0]/H(60/560))
-        # self.r = 2 * k_b * T / (6 * np.pi * eta * diffusion[diffusion > 0] / H(70 / 560))
-        self.mean_intensity = mean_intensity[diffusion > 0]
-        self.diffusion_coefficient = diffusion[diffusion > 0]
-
     def finalize(self):
         with open(self.config_file_path, 'w') as f:
             json.dump(self.contextual_data, f)
@@ -413,22 +404,7 @@ class AnalyzeWaterfall:
             self.file.close()
 
 
-k_b = 1.38E-23
-T = 300
-eta = 0.0009532
-
-
-def H(λ):
-    return (1 - λ) ** 2 * (1 - 2.104 * λ + 2.09 * λ ** 3 - 0.95 * λ ** 5)
-
-
-x = np.linspace(5 / 670, 200 / 670, 400)
-y = H(x)
-
-
-
 if __name__ == '__main__':
-    print('working...')
     a = AnalyzeWaterfall()
     a.load_waterfall(r'C:\Users\aron\Documents\NanoCET\data\test.h5')
     a.calculate_coupled_intensity(10, 6000)
