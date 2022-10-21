@@ -17,6 +17,11 @@ setup(
         ['dispertech=dispertrack:start_analysis']
         },
     install_requires=[
+        'numpy',
+        'scipy',
+        'simpy',
+        'scikit-image',
         'pandas',
+        'matplotlib',
         ]
     )
