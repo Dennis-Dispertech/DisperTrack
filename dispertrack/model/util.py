@@ -43,11 +43,12 @@ def H(r, c=670E-9):
 
     Parameters
     ----------
-    r : float
+    r : float, np.array
         Radius of the particle (in meters)
     c : float
         Diameter of the nano-channel (in meters)
     """
+
     λ = 2*r/c
     if np.any(λ > 1):
         raise ValueError('Particle is bigger than channel')

@@ -9,15 +9,14 @@ import pandas as pd
 import scipy as sp
 from numpy.linalg import LinAlgError
 from scipy.ndimage import correlate1d, median_filter
+from scipy.optimize import root_scalar
 from skimage import measure, morphology
 
-from dispertrack import config_path
+from dispertrack import config_path, logger
 from dispertrack.model.displacement import msd_iter
 from dispertrack.model.find import find_peaks1d
 from dispertrack.model.refine import refine_positions
 from dispertrack.model.util import d_r, gaussian_kernel, H, r_d
-
-import sympy
 
 
 class AnalyzeWaterfall:
@@ -122,31 +121,19 @@ class AnalyzeWaterfall:
 
         self.coupled_intensity = np.mean(self.waterfall[:, min_pixel:max_pixel])
 
-    # def calculate_background(self, axis=1, sigma=10):
-    #     """ Defines the background as the median intensity over a number of frames prior to the current frame. In
-    #     this way we do not subtract the signal of the particle from the particle itself. If particles are too close
-    #     to each other, however, this may give some problems. Using the median instead of the mean overcomes some of
-    #     the problems of using particle data to define background.
-    #
-    #     """
-    #
-    #     # self.bkg = sp.ndimage.gaussian_filter1d(self.waterfall, axis=axis, sigma=sigma)
-    #     self.bkg = np.zeros_like(self.waterfall)
-    #     for i in range(self.waterfall.shape[axis]):
-    #         self.bkg[:, i] = sp.ndimage.median_filter(self.waterfall[:, i], sigma)
-    #     self.bkg = np.roll(self.bkg, sigma, axis=0)
-    #     self.corrected_data = self.waterfall - self.bkg
-    #     self.corrected_data[self.waterfall < self.bkg] = 0
+    def calculate_background(self, sigma=10):
+        """ Defines the background as the median intensity over a number of frames prior to the current frame. In
+        this way we do not subtract the signal of the particle from the particle itself. If particles are too close
+        to each other, however, this may give some problems. Using the median instead of the mean overcomes some of
+        the problems of using particle data to define background.
 
-    def calculate_background(self, axis=None, sigma=10):
-        self.bkg = np.zeros_like(self.waterfall)
-        for column in range(sigma, self.waterfall.shape[0]):
-            self.bkg[column, :] = sp.ndimage.median_filter(self.waterfall[column, :], sigma)
-        # for row in range(sigma, self.waterfall.shape[1]):
-        #     self.bkg[:, row] = np.median(self.waterfall[:, row-sigma:row], axis=1)
-        # self.bkg[:, :sigma] = np.tile(np.median(self.waterfall[:, :sigma], axis=1)[:,None], (1, sigma))
+        """
+        self.metadata.update({'bkg_sigma': sigma})
+        bkg = sp.ndimage.median_filter(self.waterfall, size=(1, sigma))
+        bkg[bkg > self.waterfall] = self.waterfall[bkg > self.waterfall]
+        self.bkg = np.copy(bkg)
         self.corrected_data = self.waterfall - self.bkg
-        self.corrected_data[self.waterfall < self.bkg] = 0
+
 
     def denoise(self, sigma=(0, 1), truncate=4.0):
         if self.corrected_data is not None:
@@ -188,6 +175,21 @@ class AnalyzeWaterfall:
         """ Given a set of pixels as tose returned by regionprops, return the data around the center pixel.
         This method complements :meth:~calculate_slice and can be used with the resulting properties from
         :meth:~label_mask
+
+        It also gives the base coordinate for the window, which can be used to get the absolute position in the image.
+
+        Parameters
+        ----------
+        coord : np.array
+            Coordinates of pixels used for slicing. They are normally the result of using regionprops.
+
+        width (optional) : int
+            The width of the slice
+
+        Returns
+        -------
+        cropped_data : np.array
+            The extracted data with an extra column (cropped_data[:, 0]) that holds the coordinate of the sliced window
         """
         data = self.corrected_data if self.corrected_data is not None else self.waterfall
 
@@ -210,7 +212,7 @@ class AnalyzeWaterfall:
 
         return cropped_data.T
 
-    def calculate_intensities_cropped(self, data, separation=15, radius=5, threshold=1):
+    def calculate_intensities_cropped(self, data, separation=15, radius=5, threshold=None):
         """Calculates the intensity in each frame of a cropped image. It assumes there is
         only one particle present.
 
@@ -237,7 +239,11 @@ class AnalyzeWaterfall:
         intensities = np.zeros(frames)
         positions = np.zeros(frames)
         for i in range(frames):
-            pos = find_peaks1d(data[i, :], separation=separation, threshold=threshold)
+            pos = find_peaks1d(data[i, :], separation=separation, threshold=threshold, precise=False)
+            if pos.size == 0:
+                intensities[i] = np.nan
+                positions[i] = np.nan
+                continue
             pos = refine_positions(data[i, :], pos, radius)
             if len(pos) != 1:
                 intensities[i] = np.nan
@@ -250,18 +256,18 @@ class AnalyzeWaterfall:
 
     @staticmethod
     def calculate_diffusion(center, position):
-
         # Transform to 'absolute' position
         position = position + center
         X = np.arange(len(position))
         X = X[~np.isnan(position)]
         clean_position = position[~np.isnan(position)]
+        if len(X) < 2:
+            return
         try:
             fit = np.polyfit(X, clean_position, 1)
         except LinAlgError:
-            print(position)
-            print(center)
-            raise
+            logger.warning('Problem calculating drift correction')
+            return
 
         # Remove the drift by subtracting a first-order fit to the center position.
 
@@ -282,6 +288,7 @@ class AnalyzeWaterfall:
 
         if max_gap > 0:
             self.mask = morphology.remove_small_holes(self.mask, max_gap)
+
         self.mask = self.mask.astype(np.bool8)
 
     def label_mask(self, min_len=100):
@@ -300,20 +307,21 @@ class AnalyzeWaterfall:
 
         self.filtered_props = filtered_props[1:]
 
-    def analyze_traces(self, width=40, radius=7, separation=20, threshold=50):
+    def analyze_traces(self, width=50, radius=7, separation=20, threshold=50):
         if self.filtered_props is None:
             raise Exception('First particles must be labelled')
 
-        calibration = self.meta.get('calibration', 0.44)  # um/px uses a default value in case it was not defined
+        calibration = self.meta.get('calibration', 440E-9)  # m/px uses a default value in case it was not defined
+        print(f'Using {calibration}m/px as calibration')
 
         self.pcle_data = {}
         for i, data in enumerate(self.filtered_props):
             sliced_data = self.calculate_slice_from_label(data, width)
             intensities, positions = self.calculate_intensities_cropped(sliced_data[:, 1:], separation, radius, threshold)
             positions = positions * calibration
-            MSD = self.calculate_diffusion(sliced_data[:, 0], positions)
+            MSD = self.calculate_diffusion(sliced_data[:, 0]*calibration, positions)
             self.pcle_data.update({
-                i: {'intensity': intensities, 'position': positions, 'MSD': MSD}
+                i: {'intensity': intensities, 'position': positions, 'MSD': MSD, 'mean_intensity': np.nan, 'D': np.nan}
                 })
 
     def calculate_particle_properties(self):
@@ -324,19 +332,29 @@ class AnalyzeWaterfall:
         lagtimes = np.arange(1, 5) / fps
 
         for p, pcle_data in self.pcle_data.items():
-            MSD = pcle_data['MSD']
-            fit = np.polyfit(lagtimes, MSD['MSD'].array[:len(lagtimes)], 1)
-            m_i = np.nanmean(pcle_data['intensity'] / bkg_intensity)
-            self.pcle_data[p].update({
-                'mean_intensity': m_i,
-                'D': fit,
-                })
+            r = np.nan
+            try:
+                MSD = pcle_data['MSD']
+                fit = np.polyfit(lagtimes, MSD['MSD'].array[:len(lagtimes)], 1)
+                m_i = np.nanmean(pcle_data['intensity'] / bkg_intensity)
+                self.pcle_data[p].update({
+                    'mean_intensity': m_i,
+                    'D': fit,
+                    })
+            except LinAlgError as e:
+                logger.error(f'Particle {p} has a problem.', e)
+                continue
+            except TypeError as e:
+                logger.error(f'Particle {p} has no MSD defined.', e)
+                continue
 
-            X = np.linspace(1E-9, C/2, 500)
-            to_minimize = d_r(X) / H(X, C) - fit[0]
-            r = X[np.argmin(to_minimize)]
-
-            self.pcle_data[p].update({'r': r})
+            def to_minimize(X):
+                return d_r(X) - fit[0] / H(X, C)
+            try:
+                r = root_scalar(to_minimize, bracket=(1E-9, C/2)).root
+                self.pcle_data[p].update({'r': r})
+            except:
+                print(f'Problem with pcle {p}')
 
     def save_particle_label(self, data, metadata, particle_num):
         if self.mask is not None:
@@ -363,7 +381,7 @@ class AnalyzeWaterfall:
         for key, value in metadata.items():
             dset.attrs[key] = value
 
-    def save_particle_data(self, data, metadata, particle_num=None):
+    def save_particle_data(self):
         """ Save the particle data to the same file from which the waterfall was taken. The data to be saved is a 2D
         array that contains the position and intensity at each frame, or 0 if no information is available (for
         instance if the peak was not detected. Metadata stores the parameters needed to re-acquire the same data,
@@ -376,20 +394,21 @@ class AnalyzeWaterfall:
             self.file.create_group('particles')
 
         particles = self.file['particles']
-        if particle_num is None:
-            pcle_num = len(particles.keys())
-            pcle = particles.create_group(str(pcle_num))
-            pcle.create_dataset('data', data=data)
-            pcle.create_dataset('metadata', data=json.dumps(metadata))
-            return pcle_num
-        else:
-            if str(particle_num) not in particles.keys():
-                raise ValueError('That particle does not exist in the waterfall file')
-            del particles[str(particle_num)]
-            pcle = particles.create_group(str(particle_num))
-            pcle.create_dataset('data', data=data)
-            pcle.create_dataset('metadata', data=json.dumps(metadata))
-            return particle_num
+        for p, pcle_data in self.pcle_data.items():
+            if p in particles:
+                del particles[p]
+            pcle = particles.create_group(str(p))
+            pcle.create_dataset('data', data=json.dumps(pcle_data))
+
+    def load_particle_data(self):
+        if not 'particles' in self.file.keys():
+            raise KeyError('There is no particle data in this file')
+
+        particles = self.file['particles']
+        for p in particles:
+            self.pcle_data.update({
+                p: json.loads(particles[p]['data'][()])
+                })
 
     def finalize(self):
         with open(self.config_file_path, 'w') as f:
