@@ -325,7 +325,8 @@ class AnalyzeWaterfall:
                 })
 
     def calculate_particle_properties(self):
-        C = self.meta.get('channel_diameter', 560E-9)
+        C = self.meta.get('channel_diameter', '560')
+        C = int(C)*1E-9
         bkg_intensity = np.mean(self.waterfall[:, :10])
 
         fps = self.meta['fps']
