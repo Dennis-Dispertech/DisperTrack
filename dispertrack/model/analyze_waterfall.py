@@ -7,15 +7,16 @@ import h5py
 import numpy as np
 import pandas as pd
 import scipy as sp
-import scipy.ndimage
+from numpy.linalg import LinAlgError
 from scipy.ndimage import correlate1d, median_filter
+from scipy.optimize import root_scalar
 from skimage import measure, morphology
 
-from dispertrack import config_path
+from dispertrack import config_path, logger
 from dispertrack.model.displacement import msd_iter
 from dispertrack.model.find import find_peaks1d
 from dispertrack.model.refine import refine_positions
-from dispertrack.model.util import gaussian_kernel
+from dispertrack.model.util import d_r, gaussian_kernel, H, r_d
 
 
 class AnalyzeWaterfall:
@@ -26,6 +27,7 @@ class AnalyzeWaterfall:
         self.mask = None
         self.filtered_props = []
         self.coupled_intensity = None
+        self.pcle_data = {}
 
         self.metadata = {
             'start_frame': None,
@@ -65,8 +67,8 @@ class AnalyzeWaterfall:
 
     def load_waterfall(self, filename, mode='a'):
         file = h5py.File(filename, mode=mode)
-        path = file.visit(self.find_waterfall)
-        self.waterfall = file[path][()].T
+        self.meta = json.loads(file['data']['metadata'][()].decode())
+        self.waterfall = self.find_waterfall(file)
 
         for key in self.metadata.keys():
             if key in file.keys():
@@ -95,16 +97,15 @@ class AnalyzeWaterfall:
         self.waterfall = self.waterfall.T
 
     @staticmethod
-    def find_waterfall(name):
-        """ Callable to use with HDF visit method. It returns the first element it encounters with the text waterfall.
-        """
-        if 'waterfall' in name:
-            return name
+    def find_waterfall(file):
+        path = file.visit(lambda name: name if 'waterfall' in name else None)
+        if path is None:
+            path = file.visit(lambda name: name if 'timelapse' in name else None)
+        return file[path][()]
 
     def clear_crop(self):
         if self.file is not None:
-            path = self.file.visit(self.find_waterfall)
-            self.waterfall = self.file[path][()].T
+            self.waterfall = self.find_waterfall(self.file)
 
     def crop_waterfall(self, start, stop):
         """ Selects the range of frames that will be analyzed, this is handy to remove unwanted data from memory and
@@ -120,21 +121,19 @@ class AnalyzeWaterfall:
 
         self.coupled_intensity = np.mean(self.waterfall[:, min_pixel:max_pixel])
 
-    def calculate_background(self, axis=1, sigma=10):
+    def calculate_background(self, sigma=10):
         """ Defines the background as the median intensity over a number of frames prior to the current frame. In
         this way we do not subtract the signal of the particle from the particle itself. If particles are too close
         to each other, however, this may give some problems. Using the median instead of the mean overcomes some of
         the problems of using particle data to define background.
 
         """
-
-        # self.bkg = sp.ndimage.gaussian_filter1d(self.waterfall, axis=axis, sigma=sigma)
-        self.bkg = np.zeros_like(self.waterfall)
-        for i in range(self.waterfall.shape[axis]):
-            self.bkg[:, i] = sp.ndimage.median_filter(self.waterfall[:, i], sigma)
-        self.bkg = np.roll(self.bkg, sigma, axis=0)
+        self.metadata.update({'bkg_sigma': sigma})
+        bkg = sp.ndimage.median_filter(self.waterfall, size=(1, sigma))
+        bkg[bkg > self.waterfall] = self.waterfall[bkg > self.waterfall]
+        self.bkg = np.copy(bkg)
         self.corrected_data = self.waterfall - self.bkg
-        self.corrected_data[self.waterfall < self.bkg] = 0
+
 
     def denoise(self, sigma=(0, 1), truncate=4.0):
         if self.corrected_data is not None:
@@ -176,6 +175,21 @@ class AnalyzeWaterfall:
         """ Given a set of pixels as tose returned by regionprops, return the data around the center pixel.
         This method complements :meth:~calculate_slice and can be used with the resulting properties from
         :meth:~label_mask
+
+        It also gives the base coordinate for the window, which can be used to get the absolute position in the image.
+
+        Parameters
+        ----------
+        coord : np.array
+            Coordinates of pixels used for slicing. They are normally the result of using regionprops.
+
+        width (optional) : int
+            The width of the slice
+
+        Returns
+        -------
+        cropped_data : np.array
+            The extracted data with an extra column (cropped_data[:, 0]) that holds the coordinate of the sliced window
         """
         data = self.corrected_data if self.corrected_data is not None else self.waterfall
 
@@ -198,7 +212,7 @@ class AnalyzeWaterfall:
 
         return cropped_data.T
 
-    def calculate_intensities_cropped(self, data, separation=15, radius=5, threshold=1):
+    def calculate_intensities_cropped(self, data, separation=15, radius=5, threshold=None):
         """Calculates the intensity in each frame of a cropped image. It assumes there is
         only one particle present.
 
@@ -206,13 +220,30 @@ class AnalyzeWaterfall:
         ----------
         data : numpy.array
             It should be a rectangular image, resulting from cropping the waterfall around a bright peak.
+        separation : int
+            value passed directly to `find_peaks`
+        radius : int
+            value passed directly to `refine_positions`
+        threshold : int
+            value passed directly to `find_peaks`
+
+        Returns
+        -------
+        intensities : np.array
+            the output of `refine_positions`
+        positions : np.array
+            the output of `refine_positions
         """
 
         frames = np.max(data.shape)
         intensities = np.zeros(frames)
         positions = np.zeros(frames)
         for i in range(frames):
-            pos = find_peaks1d(data[i, :], separation=separation, threshold=threshold)
+            pos = find_peaks1d(data[i, :], separation=separation, threshold=threshold, precise=False)
+            if pos.size == 0:
+                intensities[i] = np.nan
+                positions[i] = np.nan
+                continue
             pos = refine_positions(data[i, :], pos, radius)
             if len(pos) != 1:
                 intensities[i] = np.nan
@@ -223,18 +254,26 @@ class AnalyzeWaterfall:
 
         return intensities, positions
 
-    def calculate_diffusion(self, center, position):
-
+    @staticmethod
+    def calculate_diffusion(center, position):
         # Transform to 'absolute' position
         position = position + center
-
-        X = np.arange(len(center))
-        fit = np.polyfit(X, center, 1)
+        X = np.arange(len(position))
+        X = X[~np.isnan(position)]
+        clean_position = position[~np.isnan(position)]
+        if len(X) < 2:
+            return
+        try:
+            fit = np.polyfit(X, clean_position, 1)
+        except LinAlgError:
+            logger.warning('Problem calculating drift correction')
+            return
 
         # Remove the drift by subtracting a first-order fit to the center position.
 
-        position = position - np.polyval(fit, X)
-        lagtimes = np.arange(1, int(len(position) / 2))
+        position = position - np.polyval(fit, np.arange(len(position)))
+
+        lagtimes = np.arange(1, int(len(position) / 2))  # delta t in frames
         MSD = pd.DataFrame(msd_iter(position, lagtimes=lagtimes), columns=['MD', 'MSD'], index=lagtimes)
         return MSD
 
@@ -250,8 +289,11 @@ class AnalyzeWaterfall:
         if max_gap > 0:
             self.mask = morphology.remove_small_holes(self.mask, max_gap)
 
+        self.mask = self.mask.astype(np.bool8)
+
     def label_mask(self, min_len=100):
         """ Label the mask and remove those tracks that have fewer than a minimum number of frames in them.
+        The data of the label is stored as `filtered_props`
         """
         self.metadata['mask_min_length'] = min_len
 
@@ -263,14 +305,64 @@ class AnalyzeWaterfall:
             if np.max(p.coords[:, 1]) - np.min(p.coords[:, 1]) >= min_len:
                 filtered_props.append(p.coords)
 
-        self.filtered_props = filtered_props
+        self.filtered_props = filtered_props[1:]
+
+    def analyze_traces(self, width=50, radius=7, separation=20, threshold=50):
+        if self.filtered_props is None:
+            raise Exception('First particles must be labelled')
+
+        calibration = self.meta.get('calibration', 440E-9)  # m/px uses a default value in case it was not defined
+        print(f'Using {calibration}m/px as calibration')
+
+        self.pcle_data = {}
+        for i, data in enumerate(self.filtered_props):
+            sliced_data = self.calculate_slice_from_label(data, width)
+            intensities, positions = self.calculate_intensities_cropped(sliced_data[:, 1:], separation, radius, threshold)
+            positions = positions * calibration
+            MSD = self.calculate_diffusion(sliced_data[:, 0]*calibration, positions)
+            self.pcle_data.update({
+                i: {'intensity': intensities, 'position': positions, 'MSD': MSD, 'mean_intensity': np.nan, 'D': np.nan}
+                })
+
+    def calculate_particle_properties(self):
+        C = self.meta.get('channel_diameter', '560')
+        C = int(C)*1E-9
+        bkg_intensity = np.mean(self.waterfall[:, :10])
+
+        fps = self.meta['fps']
+        lagtimes = np.arange(1, 5) / fps
+
+        for p, pcle_data in self.pcle_data.items():
+            r = np.nan
+            try:
+                MSD = pcle_data['MSD']
+                fit = np.polyfit(lagtimes, MSD['MSD'].array[:len(lagtimes)], 1)
+                m_i = np.nanmean(pcle_data['intensity'] / bkg_intensity)
+                self.pcle_data[p].update({
+                    'mean_intensity': m_i,
+                    'D': fit,
+                    })
+            except LinAlgError as e:
+                logger.error(f'Particle {p} has a problem.', e)
+                continue
+            except TypeError as e:
+                logger.error(f'Particle {p} has no MSD defined.', e)
+                continue
+
+            def to_minimize(X):
+                return d_r(X) - fit[0] / H(X, C)
+            try:
+                r = root_scalar(to_minimize, bracket=(1E-9, C/2)).root
+                self.pcle_data[p].update({'r': r})
+            except:
+                print(f'Problem with pcle {p}')
 
     def save_particle_label(self, data, metadata, particle_num):
         if self.mask is not None:
             if 'mask' not in self.file.keys():
                 mask = self.file.create_group('mask')
                 particles = mask.create_group('particles')
-                print('Creating mask and particle gourps')
+                print('Creating mask and particle groups')
             elif 'particles' not in self.file['mask'].keys():
                 particles = self.file['mask'].create_group('particles')
                 print('Creating particles group')
@@ -290,7 +382,7 @@ class AnalyzeWaterfall:
         for key, value in metadata.items():
             dset.attrs[key] = value
 
-    def save_particle_data(self, data, metadata, particle_num=None):
+    def save_particle_data(self):
         """ Save the particle data to the same file from which the waterfall was taken. The data to be saved is a 2D
         array that contains the position and intensity at each frame, or 0 if no information is available (for
         instance if the peak was not detected. Metadata stores the parameters needed to re-acquire the same data,
@@ -303,48 +395,21 @@ class AnalyzeWaterfall:
             self.file.create_group('particles')
 
         particles = self.file['particles']
-        if particle_num is None:
-            pcle_num = len(particles.keys())
-            pcle = particles.create_group(str(pcle_num))
-            pcle.create_dataset('data', data=data)
-            pcle.create_dataset('metadata', data=json.dumps(metadata))
-            return pcle_num
-        else:
-            if str(particle_num) not in particles.keys():
-                raise ValueError('That particle does not exist in the waterfall file')
-            del particles[str(particle_num)]
-            pcle = particles.create_group(str(particle_num))
-            pcle.create_dataset('data', data=data)
-            pcle.create_dataset('metadata', data=json.dumps(metadata))
-            return particle_num
+        for p, pcle_data in self.pcle_data.items():
+            if p in particles:
+                del particles[p]
+            pcle = particles.create_group(str(p))
+            pcle.create_dataset('data', data=json.dumps(pcle_data))
 
-    def calculate_particle_properties(self):
-        bkg_intensity = np.mean(self.waterfall[:, :10])
-        self.particles = {}
-        lagtimes = 5E-3 * np.arange(1, 5)
-        for particle in self.file['mask/particles'].keys():
-            data = self.file['mask/particles'][particle][:]
-            MSD = self.calculate_diffusion(data[2, :], data[0, :])
-            fit = np.polyfit(lagtimes, MSD['MSD'].array[:len(lagtimes)], 2)
-            attrs = self.file['mask/particles'][particle].attrs
-            if attrs['valid'] == 0:
-                continue
-            m_i = np.nanmean(np.power(data[1, :] / bkg_intensity, 1 / 6))
-            self.particles[particle] = {
-                'data': data,
-                'mean_intensity': m_i,
-                'D': fit,
-                }
+    def load_particle_data(self):
+        if not 'particles' in self.file.keys():
+            raise KeyError('There is no particle data in this file')
 
-        mean_intensity = np.zeros(len(self.particles))
-        diffusion = np.zeros(len(self.particles))
-        for i, d in enumerate(self.particles.values()):
-            mean_intensity[i] = d['mean_intensity']
-            diffusion[i] = d['D'][1] / 2
-
-        self.r = 2 * k_b * T / (6 * np.pi * eta * diffusion[diffusion > 0] / H(70 / 670) * 1E-12)
-        self.mean_intensity = mean_intensity[diffusion > 0]
-        self.diffusion_coefficient = diffusion[diffusion > 0]
+        particles = self.file['particles']
+        for p in particles:
+            self.pcle_data.update({
+                p: json.loads(particles[p]['data'][()])
+                })
 
     def finalize(self):
         with open(self.config_file_path, 'w') as f:
@@ -359,14 +424,12 @@ class AnalyzeWaterfall:
             self.file.close()
 
 
-k_b = 1.38E-23
-T = 300
-eta = 0.0009532
-
-
-def H(λ):
-    return (1 - λ) ** 2 * (1 - 2.104 * λ + 2.09 * λ ** 3 - 0.95 * λ ** 5)
-
-
-x = np.linspace(5 / 670, 200 / 670, 400)
-y = H(x)
+if __name__ == '__main__':
+    a = AnalyzeWaterfall()
+    a.load_waterfall(r'C:\Users\aron\Documents\NanoCET\data\test.h5')
+    a.calculate_coupled_intensity(10, 6000)
+    a.crop_waterfall(8300, 28300) # 64300)
+    a.calculate_background(None, 20)
+    a.calculate_mask(200, 20, 100)
+    a.label_mask(200)
+    print('done')

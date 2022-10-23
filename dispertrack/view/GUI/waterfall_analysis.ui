@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1233</width>
-    <height>829</height>
+    <width>731</width>
+    <height>724</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -1350,33 +1350,6 @@ font-weight: bold;
         </widget>
        </item>
        <item>
-        <widget class="QLabel" name="label_5">
-         <property name="text">
-          <string>Axis</string>
-         </property>
-         <property name="buddy">
-          <cstring>combo_bkg_axis</cstring>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QComboBox" name="combo_bkg_axis">
-         <property name="toolTip">
-          <string>Background axis</string>
-         </property>
-         <item>
-          <property name="text">
-           <string>1</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>2</string>
-          </property>
-         </item>
-        </widget>
-       </item>
-       <item>
         <widget class="QLabel" name="label_6">
          <property name="text">
           <string>Sigma</string>
@@ -1430,7 +1403,11 @@ font-weight: bold;
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="line_mask_threshold"/>
+        <widget class="QLineEdit" name="line_mask_threshold">
+         <property name="text">
+          <string>100</string>
+         </property>
+        </widget>
        </item>
        <item>
         <widget class="QLabel" name="label_9">
@@ -1443,7 +1420,11 @@ font-weight: bold;
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="line_mask_max_gap"/>
+        <widget class="QLineEdit" name="line_mask_max_gap">
+         <property name="text">
+          <string>50</string>
+         </property>
+        </widget>
        </item>
        <item>
         <widget class="QLabel" name="label_10">
@@ -1456,7 +1437,11 @@ font-weight: bold;
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="line_mask_min_size"/>
+        <widget class="QLineEdit" name="line_mask_min_size">
+         <property name="text">
+          <string>50</string>
+         </property>
+        </widget>
        </item>
        <item>
         <widget class="QLabel" name="label_11">
@@ -1469,7 +1454,11 @@ font-weight: bold;
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="line_mask_min_len"/>
+        <widget class="QLineEdit" name="line_mask_min_len">
+         <property name="text">
+          <string>100</string>
+         </property>
+        </widget>
        </item>
        <item>
         <widget class="QPushButton" name="button_show_mask">
@@ -1496,7 +1485,15 @@ font-weight: bold;
     </item>
     <item>
      <widget class="QWidget" name="plot_widget" native="true">
-      <layout class="QGridLayout" name="gridLayout_2"/>
+      <layout class="QHBoxLayout" name="horizontalLayout_2">
+       <item>
+        <widget class="QSlider" name="slider_frame_selection">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </widget>
     </item>
    </layout>
@@ -1506,7 +1503,7 @@ font-weight: bold;
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1233</width>
+     <width>731</width>
      <height>24</height>
     </rect>
    </property>
@@ -1515,15 +1512,16 @@ font-weight: bold;
      <string>File</string>
     </property>
     <addaction name="action_open"/>
+    <addaction name="action_save"/>
+    <addaction name="action_load"/>
    </widget>
    <widget class="QMenu" name="menuWaterfall">
     <property name="title">
      <string>Waterfall</string>
     </property>
-    <addaction name="action_transpose"/>
     <addaction name="action_background"/>
-    <addaction name="action_setup_roi"/>
-    <addaction name="action_apply_roi"/>
+    <addaction name="action_analyze_particles"/>
+    <addaction name="action_view_histogram"/>
     <addaction name="action_load_mask"/>
    </widget>
    <widget class="QMenu" name="menuMovie">
@@ -1560,15 +1558,14 @@ QToolButton:pressed {background-color:darkgray}
     <bool>false</bool>
    </attribute>
    <addaction name="action_open"/>
-   <addaction name="action_transpose"/>
    <addaction name="action_select_intensity"/>
    <addaction name="action_crop"/>
    <addaction name="action_background"/>
    <addaction name="action_denoise"/>
    <addaction name="action_create_mask"/>
    <addaction name="action_show_labels"/>
-   <addaction name="action_setup_roi"/>
-   <addaction name="action_apply_roi"/>
+   <addaction name="action_analyze_particles"/>
+   <addaction name="action_view_histogram"/>
   </widget>
   <action name="action_open">
    <property name="icon">
@@ -1585,19 +1582,7 @@ QToolButton:pressed {background-color:darkgray}
     <string>Ctrl+O</string>
    </property>
   </action>
-  <action name="action_transpose">
-   <property name="icon">
-    <iconset>
-     <normaloff>Icons/blueprint_shuffle.svg</normaloff>Icons/blueprint_shuffle.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Transpose</string>
-   </property>
-   <property name="toolTip">
-    <string>Transpose waterfall</string>
-   </property>
-  </action>
-  <action name="action_setup_roi">
+  <action name="action_analyze_particles">
    <property name="icon">
     <iconset>
      <normaloff>Icons/blueprint_guide.svg</normaloff>Icons/blueprint_guide.svg</iconset>
@@ -1606,19 +1591,19 @@ QToolButton:pressed {background-color:darkgray}
     <string>Setup ROI</string>
    </property>
    <property name="toolTip">
-    <string>Setup or clear ROI line</string>
+    <string>Analyze particles</string>
    </property>
   </action>
-  <action name="action_apply_roi">
+  <action name="action_view_histogram">
    <property name="icon">
     <iconset>
      <normaloff>Icons/blueprint_live.svg</normaloff>Icons/blueprint_live.svg</iconset>
    </property>
    <property name="text">
-    <string>Apply ROI</string>
+    <string>Show plots</string>
    </property>
    <property name="toolTip">
-    <string>Show data iniside ROI</string>
+    <string>Show data plots</string>
    </property>
   </action>
   <action name="action_background">
@@ -1709,9 +1694,23 @@ QToolButton:pressed {background-color:darkgray}
     <string>Open Movie</string>
    </property>
   </action>
-  <action name="action_view_histogram">
+  <action name="action_save">
    <property name="text">
-    <string>View Histogram</string>
+    <string>Save</string>
+   </property>
+   <property name="toolTip">
+    <string>Save Particle Data</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
+   </property>
+  </action>
+  <action name="action_load">
+   <property name="text">
+    <string>Load</string>
+   </property>
+   <property name="toolTip">
+    <string>Load particle data</string>
    </property>
   </action>
  </widget>
