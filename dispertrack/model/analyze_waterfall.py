@@ -66,9 +66,9 @@ class AnalyzeWaterfall:
 
         atexit.register(self.finalize)
 
-    def load_waterfall(self, filename, mode='a'):
+    def load_waterfall(self, filename, mode='a', dataset='data'):
         file = h5py.File(filename, mode=mode)
-        self.meta = json.loads(file['data']['metadata'][()].decode())
+        self.meta = json.loads(file[dataset]['metadata'][()].decode())
         self.waterfall = self.find_waterfall(file)
 
         for key in self.metadata.keys():
