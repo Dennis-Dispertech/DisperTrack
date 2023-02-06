@@ -331,6 +331,7 @@ class AnalyzeWaterfall:
         self.metadata.update({'Channel diameter (nm)': C})
         C = int(C)*1E-9
         bkg_intensity = np.mean(self.waterfall[:, :10])
+        self.metadata['bkg_intensity'] = bkg_intensity
 
         fps = self.meta['fps']
         lagtimes = np.arange(1, 5) / fps
