@@ -19,6 +19,8 @@ class MakeWaterfall:
             'waterfall_output_dir': None,
             }
 
+        self.waterfall_metadata = {}
+
         self.data_file = None
 
         if not self.config_file_path.is_file():
@@ -62,6 +64,8 @@ class MakeWaterfall:
             'last_movie_directory': str(filename.parents[0])
             })
 
+        self.waterfall_metadata.update(self.movie_metadata)
+
     def calculate_region_of_interest(self, index=0, frames=10, sigmas=1):
         """ Calculates the region of interest by adding all the pixels along the fiber direction, fitting a gaussian
         to the profile and returning the min and max pixel that fall within the number of sigmas.
@@ -86,6 +90,9 @@ class MakeWaterfall:
         if self.movie_data is None:
             raise Exception("Movie not loaded")
 
+        if not 'frames' in self.movie_metadata:
+            self.movie_metadata['frames'] = self.movie_data.shape[2]
+
         if index + frames > self.movie_metadata['frames']:
             raise Exception("Not enough frames to perform this operation")
 
@@ -98,7 +105,7 @@ class MakeWaterfall:
         params = fitgaussian(cross_section, p0)
 
         self.roi = np.int(params[1]-sigmas*params[2]), np.int(params[1]+sigmas*params[2])
-
+        self.waterfall_metadata.update({'roi': self.roi})
         return np.int(params[1]-sigmas*params[2]), np.int(params[1]+sigmas*params[2])
 
     def calculate_movie_background(self, index=0, frames=10):
@@ -164,7 +171,7 @@ class MakeWaterfall:
         else:
             self.waterfall = np.sum(movie_data, axis)
 
-    def save_waterfall(self, filename, dataset='waterfall'):
+    def save_waterfall(self, filename, group='data', dataset='timelapse'):
         """ Saves the calculated waterfall to the given filename.
 
         :param Path filename: Path object where to store the waterfall.
@@ -175,9 +182,14 @@ class MakeWaterfall:
         folder = filename.parents[0]
         folder.mkdir(parents=True, exist_ok=True)
         with h5py.File(filename, 'a') as f:
-            if dataset in f:
-                raise KeyError('The waterfall already exists, choose a different name.')
-            f.create_dataset(dataset, data=self.waterfall)
+            if group in f:
+                raise KeyError(f'The specified group {group} for the waterfall already exists, choose a different '
+                               f'name.')
+
+            g = f.create_group(group)
+            g.create_dataset(dataset, data=self.waterfall)
+            g.create_dataset('metadata', data=json.dumps(self.waterfall_metadata).encode("utf-8", "ignore"))
+            f.flush()
 
         self.contextual_data.update({
                 'waterfall_output_dir': str(folder)
