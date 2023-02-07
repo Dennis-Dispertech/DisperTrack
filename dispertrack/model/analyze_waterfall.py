@@ -380,7 +380,7 @@ class AnalyzeWaterfall:
 
             def to_minimize(particle_radius):
                 # return d_r(particle_radius, T=273.15 + 20, eta=viscosity_water) - fit[0] / Renkin(particle_radius, channel_diameter)
-                return d_r(particle_radius, T=273.15 + 30, eta=viscosity_water) - fit[0] / 2 / Renkin(particle_radius, channel_diameter)
+                return d_r(particle_radius, T=273.15 + self.metadata['Temperature (C)'], eta=viscosity_water) - fit[0] / 2 / Renkin(particle_radius, channel_diameter)
                 # fit[0] is the linear component of the 1st order polynomial fit if MSD(t) = 2*D*t
                 # Hence diffusion D = fit[0]/2
                 # There was some uncertainty about the whether the hindrance factor should be divided or multiplied.
@@ -484,7 +484,7 @@ class AnalyzeWaterfall:
         self.contextual_data = {
             'last_export_folder': str(filename)
             }
-        data = {p: [pp.get('D'), pp.get('mean_intensity'), pp.get('r'), pp.get('intensity_std')]
+        data = {p: [pp.get('D')[0], pp.get('mean_intensity'), pp.get('r'), pp.get('intensity_std')]
                 for p, pp in self.pcle_data.items()}
 
         data_df = pd.DataFrame.from_dict(data, orient='index', columns=['Diffusion coefficient',
@@ -522,12 +522,12 @@ class AnalyzeWaterfall:
 
 if __name__ == '__main__':
     a = AnalyzeWaterfall()
-    a.load_waterfall(r'C:\Users\aron\Documents\NanoCET\data\test1.h5')
+    a.load_waterfall(r'D:\Data\Waterfall_60nm_1.h5')
     a.calculate_coupled_intensity(10, 6000)
     a.crop_waterfall(8300, 28300) # 64300)
     print('calculating background')
     a.calculate_background(30)
-    a.calculate_mask(190, 20, 100)
+    a.calculate_mask(70, 20, 100)
     a.label_mask(200)
     print('analyzing particles')
     a.analyze_traces()
