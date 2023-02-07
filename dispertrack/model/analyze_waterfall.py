@@ -7,6 +7,7 @@ import h5py
 import numpy as np
 import pandas as pd
 import scipy as sp
+import yaml
 from numpy.linalg import LinAlgError
 from scipy.ndimage import correlate1d, median_filter
 from scipy.optimize import root_scalar, least_squares, fmin
@@ -37,7 +38,7 @@ class AnalyzeWaterfall:
             'end_frame': None,
             'bkg_axis': None,
             'bkg_sigma': None,
-            'exposure_time': None,
+            'exposure': None,
             'sample_description': None,
             'fps': None,
             'mask_threshold': None,
@@ -74,8 +75,8 @@ class AnalyzeWaterfall:
         self.waterfall = self.find_waterfall(file)
 
         for key in self.metadata.keys():
-            if key in file.keys():
-                self.metadata[key] = file[key][()]
+            if key in self.meta.keys():
+                self.metadata[key] = self.meta[key]
 
         self.contextual_data.update({
             'last_file': str(filename),
@@ -115,14 +116,15 @@ class AnalyzeWaterfall:
         it helps speed up the GUI.
         """
         self.waterfall = self.waterfall[:, start:stop]
-        self.metadata['start_frame'] = start
-        self.metadata['end_frame'] = stop
+        self.metadata['start_frame'] = int(start)
+        self.metadata['end_frame'] = int(stop)
 
     def calculate_coupled_intensity(self, min_pixel=0, max_pixel=-1):
         self.metadata['coupled_intensity_min_pixel'] = min_pixel
         self.metadata['coupled_intensity_max_pixel'] = max_pixel
 
         self.coupled_intensity = np.mean(self.waterfall[:, min_pixel:max_pixel])
+        self.metadata['coupled_intensity'] = self.coupled_intensity
 
     def calculate_background(self, sigma=10):
         """ Defines the background as the median intensity over a number of frames prior to the current frame. In
@@ -142,7 +144,6 @@ class AnalyzeWaterfall:
         bkg[bkg > self.waterfall] = self.waterfall[bkg > self.waterfall]
         self.bkg = np.copy(bkg)
         self.corrected_data = self.waterfall - self.bkg
-
 
     def denoise(self, sigma=(0, 1), truncate=4.0):
         if self.corrected_data is not None:
@@ -333,15 +334,15 @@ class AnalyzeWaterfall:
             positions = positions * calibration
             MSD = self.calculate_diffusion(sliced_data[:, 0]*calibration, positions)
             self.pcle_data.update({
-                i: {'intensity': intensities, 'position': positions, 'MSD': MSD, 'mean_intensity': np.nan, 'D': np.nan}
+                i: {'intensity': intensities, 'position': positions, 'MSD': MSD, 'mean_intensity': np.nan,
+                    'intensity_std': np.nan, 'D': np.nan}
                 })
 
     def calculate_particle_properties(self):
-        """
-        TODO: take out the hindrance factor to measure raw calibration data
-        """
-        channel_diameter = self.meta.get('channel_diameter', '560')
+        channel_diameter = self.meta.get('channel_diameter', '670')
         channel_diameter = int(channel_diameter)*1E-9
+        self.metadata.update({'Channel diameter (nm)': channel_diameter})
+
         bkg_intensity = np.mean(self.waterfall[:, :10])
 
         fps = self.meta['fps']
@@ -362,8 +363,10 @@ class AnalyzeWaterfall:
                 slope = least_squares(residual, [MSD['MSD'].array[:len(lagtimes)][-1]/lagtimes[-1]])
 
                 m_i = np.nanmean(pcle_data['intensity'] / bkg_intensity)
+                d_i = np.nanstd(pcle_data['intensity'] / bkg_intensity)
                 self.pcle_data[p].update({
                     'mean_intensity': m_i,
+                    'intensity_std': d_i,
                     'D': fit,
                     })
             except LinAlgError as e:
@@ -377,7 +380,7 @@ class AnalyzeWaterfall:
 
             def to_minimize(particle_radius):
                 # return d_r(particle_radius, T=273.15 + 20, eta=viscosity_water) - fit[0] / Renkin(particle_radius, channel_diameter)
-                return d_r(particle_radius, T=273.15 + 22, eta=viscosity_water) - fit[0] / 2 / Renkin(particle_radius, channel_diameter)
+                return d_r(particle_radius, T=273.15 + 30, eta=viscosity_water) - fit[0] / 2 / Renkin(particle_radius, channel_diameter)
                 # fit[0] is the linear component of the 1st order polynomial fit if MSD(t) = 2*D*t
                 # Hence diffusion D = fit[0]/2
                 # There was some uncertainty about the whether the hindrance factor should be divided or multiplied.
@@ -474,6 +477,25 @@ class AnalyzeWaterfall:
                 del particles[p]
             pcle = particles.create_group(str(p))
             pcle.create_dataset('data', data=json.dumps(pcle_data))
+
+    def export_particle_data(self, filename):
+        """ Exports the information of the particles to a CSV file.
+        """
+        self.contextual_data = {
+            'last_export_folder': str(filename)
+            }
+        data = {p: [pp.get('D'), pp.get('mean_intensity'), pp.get('r'), pp.get('intensity_std')]
+                for p, pp in self.pcle_data.items()}
+
+        data_df = pd.DataFrame.from_dict(data, orient='index', columns=['Diffusion coefficient',
+                                                                        'Intensity',
+                                                                        'Diameter',
+                                                                        'Intensity standard deviation'])
+        data_df.to_csv(filename)
+
+    def export_metadata(self, filename):
+        with open(filename, 'w') as outfile:
+            yaml.dump(self.metadata, outfile)
 
     def load_particle_data(self):
         if not 'particles' in self.file.keys():

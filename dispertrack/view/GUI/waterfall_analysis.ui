@@ -1514,6 +1514,7 @@ font-weight: bold;
     <addaction name="action_open"/>
     <addaction name="action_save"/>
     <addaction name="action_load"/>
+    <addaction name="action_export_data"/>
    </widget>
    <widget class="QMenu" name="menuWaterfall">
     <property name="title">
@@ -1566,6 +1567,7 @@ QToolButton:pressed {background-color:darkgray}
    <addaction name="action_show_labels"/>
    <addaction name="action_analyze_particles"/>
    <addaction name="action_view_histogram"/>
+   <addaction name="action_export_data"/>
   </widget>
   <action name="action_open">
    <property name="icon">
@@ -1639,7 +1641,7 @@ QToolButton:pressed {background-color:darkgray}
     <string>Denoise</string>
    </property>
    <property name="toolTip">
-    <string>Denois data with a 1-pixel Gaussian</string>
+    <string>Denoise data with a 1-pixel Gaussian</string>
    </property>
   </action>
   <action name="action_create_mask">
@@ -1711,6 +1713,18 @@ QToolButton:pressed {background-color:darkgray}
    </property>
    <property name="toolTip">
     <string>Load particle data</string>
+   </property>
+  </action>
+  <action name="action_export_data">
+   <property name="icon">
+    <iconset>
+     <normaloff>Icons/export.svg</normaloff>Icons/export.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Export Data</string>
+   </property>
+   <property name="toolTip">
+    <string>Export single particle data to CSV</string>
    </property>
   </action>
  </widget>

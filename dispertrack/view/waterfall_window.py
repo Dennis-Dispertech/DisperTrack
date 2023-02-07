@@ -4,9 +4,8 @@ from threading import Thread
 import numpy as np
 
 from PyQt5 import uic
-from PyQt5.QtCore import QRect
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QDialog, QFileDialog, QMainWindow, QMessageBox
+from PyQt5.QtWidgets import QFileDialog, QMainWindow, QMessageBox
 
 from dispertrack import home_path
 from dispertrack.model.analyze_waterfall import AnalyzeWaterfall
@@ -14,7 +13,6 @@ from dispertrack.view import view_folder
 
 import pyqtgraph as pg
 
-from dispertrack.view.histograms_window import HistogramWindow
 from dispertrack.view.movie_window import MovieWindow
 from dispertrack.view.particle_window import ParticleWindow
 
@@ -23,7 +21,6 @@ import dispertrack.view.GUI.resources_rc
 import matplotlib.pyplot as plt
 
 from dispertrack.view.util import error_message
-from experimentor.models.decorators import make_async_thread
 
 
 class WaterfallWindow(QMainWindow):
@@ -45,6 +42,7 @@ class WaterfallWindow(QMainWindow):
         self.action_view_histogram.triggered.connect(self.show_histogram_window)
         self.action_save.triggered.connect(self.analyze_model.save_particle_data)
         self.action_load.triggered.connect(self.analyze_model.load_particle_data)
+        self.action_export_data.triggered.connect(self.export_data)
 
         self.button_clear_roi.clicked.connect(self.clear_crop)
         self.button_show_mask.clicked.connect(self.toggle_show_mask)
@@ -264,7 +262,12 @@ class WaterfallWindow(QMainWindow):
         plt.show()
 
     def export_data(self):
-        pass
+        last_dir = self.analyze_model.contextual_data.get('last_export_folder', home_path)
+        file = QFileDialog.getSaveFileName(self, 'Export data to file', str(last_dir), filter='*.csv')[0]
+        self.analyze_model.export_particle_data(file)
+        p = Path(file)
+        meta_file = str(p.parent / (p.name + '.yml'))
+        self.analyze_model.export_metadata(meta_file)
 
 
 if __name__ == '__main__':
