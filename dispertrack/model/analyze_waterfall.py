@@ -69,10 +69,10 @@ class AnalyzeWaterfall:
 
         atexit.register(self.finalize)
 
-    def load_waterfall(self, filename, mode='a', dataset='data'):
+    def load_waterfall(self, filename, mode='a', group='data', dataset='timelapse'):
         file = h5py.File(filename, mode=mode)
-        self.meta = json.loads(file[dataset]['metadata'][()].decode())
-        self.waterfall = self.find_waterfall(file)
+        self.meta = json.loads(file[group]['metadata'][()].decode())
+        self.waterfall = self.find_waterfall(file, group=group, dataset=dataset)
 
         for key in self.metadata.keys():
             if key in self.meta.keys():
@@ -101,11 +101,16 @@ class AnalyzeWaterfall:
         self.waterfall = self.waterfall.T
 
     @staticmethod
-    def find_waterfall(file):
-        path = file.visit(lambda name: name if 'waterfall' in name else None)
-        if path is None:
-            path = file.visit(lambda name: name if 'timelapse' in name else None)
-        return file[path][()]
+    def find_waterfall(file, group=None, dataset=None):
+
+        if group is None and dataset is None:
+            path = file.visit(lambda name: name if 'waterfall' in name else None)
+            if path is None:
+                path = file.visit(lambda name: name if 'timelapse' in name else None)
+            return file[path][()]
+
+        else:
+            return file[group][dataset][()]
 
     def clear_crop(self):
         if self.file is not None:
@@ -115,6 +120,8 @@ class AnalyzeWaterfall:
         """ Selects the range of frames that will be analyzed, this is handy to remove unwanted data from memory and
         it helps speed up the GUI.
         """
+        if stop == -1:
+            stop = self.waterfall.shape[1]
         self.waterfall = self.waterfall[:, start:stop]
         self.metadata['start_frame'] = int(start)
         self.metadata['end_frame'] = int(stop)
