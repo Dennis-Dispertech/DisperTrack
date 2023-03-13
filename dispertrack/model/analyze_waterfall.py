@@ -393,7 +393,8 @@ class AnalyzeWaterfall:
 
             def to_minimize(particle_radius):
                 # return d_r(particle_radius, T=273.15 + 20, eta=viscosity_water) - fit[0] / Renkin(particle_radius, channel_diameter)
-                return d_r(particle_radius, T=273.15 + self.metadata['Temperature (C)'], eta=viscosity_water) - fit[0] / 2 / Renkin(particle_radius, channel_diameter)
+                return d_r(particle_radius, T=273.15 + self.metadata.get('Temperature (C)', 22), eta=viscosity_water) \
+                       - fit[0] / 2 / Renkin(particle_radius, channel_diameter)
                 # fit[0] is the linear component of the 1st order polynomial fit if MSD(t) = 2*D*t
                 # Hence diffusion D = fit[0]/2
                 # There was some uncertainty about the whether the hindrance factor should be divided or multiplied.
