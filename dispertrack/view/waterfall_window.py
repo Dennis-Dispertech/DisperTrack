@@ -55,8 +55,8 @@ class WaterfallWindow(QMainWindow):
         self.ROI_line = None
         self.showing_mask = False
 
-        self.hline1 = pg.InfiniteLine(angle=0, movable=True, hoverPen={'color': "FF0", 'width': 4})
-        self.hline2 = pg.InfiniteLine(angle=0, movable=True, hoverPen={'color': "FF0", 'width': 4})
+        self.hline1 = pg.InfiniteLine(angle=0, movable=True, hoverPen={'color': "#FF0", 'width': 4})
+        self.hline2 = pg.InfiniteLine(angle=0, movable=True, hoverPen={'color': "#FF0", 'width': 4})
 
         self.first_waterfall_update = True
 
