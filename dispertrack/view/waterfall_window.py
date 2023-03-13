@@ -209,6 +209,7 @@ class WaterfallWindow(QMainWindow):
         t.start()
 
     def calculate_mask(self):
+        self.statusbar.showMessage('Calculating mask')
         threshold = int(self.line_mask_threshold.text())
         min_size = int(self.line_mask_min_size.text())
         max_gap = int(self.line_mask_max_gap.text())
@@ -217,6 +218,7 @@ class WaterfallWindow(QMainWindow):
         self.analyze_model.label_mask(min_len=min_len)
         if self.showing_mask:
             self.update_image(self.analyze_model.mask)
+        self.statusbar.showMessage('')
 
     def toggle_show_mask(self):
         if self.showing_mask:
@@ -229,8 +231,10 @@ class WaterfallWindow(QMainWindow):
             self.showing_mask = True
 
     def analyze_particles(self):
+        self.statusbar.showMessage('Analyzing particles')
         self.analyze_model.analyze_traces()
         self.analyze_model.calculate_particle_properties()
+        self.statusbar.showMessage('')
 
     def display_labels(self):
         self.particle_windows.append(ParticleWindow(self.analyze_model, props=self.analyze_model.filtered_props,

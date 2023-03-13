@@ -226,9 +226,19 @@ class ParticleWindow(QMainWindow):
                 self.particle_num = None
 
         data = np.stack((self.positions, self.intensities))
+        # line_slice_start and line_slice_stop ar None sometimes
+        # I don't know what it is, so for now I just work around it
+        try:
+            line_slice_start = int(self.line_slice_start.text())
+        except:
+            line_slice_start = 0
+        try:
+            line_slice_stop = int(self.line_slice_stop.text())
+        except:
+            line_slice_stop = 0
         metadata = {
-            'start': int(self.line_slice_start.text()),
-            'stop': int(self.line_slice_stop.text()),
+            'start': line_slice_start,
+            'stop': line_slice_stop,
             'width': int(self.line_slice_width.text()),
             'threshold': int(self.line_position_threshold.text()),
             'separation': int(self.line_position_separation.text()),
@@ -236,6 +246,7 @@ class ParticleWindow(QMainWindow):
             }
 
         self.particle_num = self.analyze_model.save_particle_data(data, metadata, self.particle_num)
+        # this method only takes ONE argument ??????????????????
 
         self.saved = True
 

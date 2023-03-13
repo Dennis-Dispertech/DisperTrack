@@ -10,14 +10,17 @@ import scipy as sp
 import yaml
 from numpy.linalg import LinAlgError
 from scipy.ndimage import correlate1d, median_filter
-from scipy.optimize import root_scalar
+from scipy.optimize import root_scalar, least_squares, fmin
 from skimage import measure, morphology
 
 from dispertrack import config_path, logger
 from dispertrack.model.displacement import msd_iter
 from dispertrack.model.find import find_peaks1d
 from dispertrack.model.refine import refine_positions
-from dispertrack.model.util import d_r, gaussian_kernel, H, r_d
+from dispertrack.model.util import d_r, gaussian_kernel, r_d, viscosity_water
+from dispertrack.model.util import Renkin, DechadilokDeen
+# from dispertrack.model.util import DechadilokDeen as H
+
 
 
 class AnalyzeWaterfall:
@@ -132,6 +135,12 @@ class AnalyzeWaterfall:
         """
         self.metadata.update({'bkg_sigma': sigma})
         bkg = sp.ndimage.median_filter(self.waterfall, size=(1, sigma))
+        # bkg = sp.ndimage.median_filter(self.waterfall, size=(1, sigma), origin=(0, (sigma-1)//2))
+        # bkg = np.roll(bkg, 1, axis=1)
+        # bkg[:, :(sigma-1)] = np.array([np.median(self.waterfall[:, k], axis=1) for k in range(1, sigma)], dtype=bkg.dtype)
+        # # Note: The origin used causes the median to be taken of the interval (index-sigma + 1, index) inclusive.
+        # #       The roll shifts this to the interval (index-sigma, index-1) inclusive.
+        # #       The line after that makes sure that the indices upto sigma get the median value upto that specific index.
         bkg[bkg > self.waterfall] = self.waterfall[bkg > self.waterfall]
         self.bkg = np.copy(bkg)
         self.corrected_data = self.waterfall - self.bkg
@@ -240,7 +249,10 @@ class AnalyzeWaterfall:
         intensities = np.zeros(frames)
         positions = np.zeros(frames)
         for i in range(frames):
-            pos = find_peaks1d(data[i, :], separation=separation, threshold=threshold, precise=False)
+            try:
+                pos = find_peaks1d(data[i, :], separation=separation, threshold=threshold, precise=False)
+            except:
+                continue
             if pos.size == 0:
                 intensities[i] = np.nan
                 positions[i] = np.nan
@@ -327,9 +339,15 @@ class AnalyzeWaterfall:
                 })
 
     def calculate_particle_properties(self):
+        """
+        TODO: take out the hindrance factor to measure raw calibration data
+        """
         C = self.meta.get('channel_diameter', '560')
         self.metadata.update({'Channel diameter (nm)': C})
         C = int(C)*1E-9
+
+        channel_diameter = self.meta.get('channel_diameter', '560')
+        channel_diameter = int(channel_diameter)*1E-9
         bkg_intensity = np.mean(self.waterfall[:, :10])
         self.metadata['bkg_intensity'] = bkg_intensity
 
@@ -341,6 +359,15 @@ class AnalyzeWaterfall:
             try:
                 MSD = pcle_data['MSD']
                 fit = np.polyfit(lagtimes, MSD['MSD'].array[:len(lagtimes)], 1)
+                # Fitting a polynomial allows for an offset.
+                # If there is no justification for that offset, fitting a straight line through (0,0) seems more sensible:
+                # slope, _, _, _ = np.linalg.lstsq(lagtimes[:, np.newaxis], MSD['MSD'].array[:len(lagtimes)])
+
+                print(type(lagtimes))
+                model = lambda slope: lagtimes*slope
+                residual = lambda slope: MSD['MSD'].array[:len(lagtimes)] - model(slope)
+                slope = least_squares(residual, [MSD['MSD'].array[:len(lagtimes)][-1]/lagtimes[-1]])
+
                 m_i = np.nanmean(pcle_data['intensity'] / bkg_intensity)
                 d_i = np.nanstd(pcle_data['intensity'] / bkg_intensity)
                 self.pcle_data[p].update({
@@ -349,16 +376,23 @@ class AnalyzeWaterfall:
                     'D': fit,
                     })
             except LinAlgError as e:
-                logger.error(f'Particle {p} has a problem.', e)
+                logger.error(f'Particle {p} has a problem.')
+                print(e)
                 continue
             except TypeError as e:
-                logger.error(f'Particle {p} has no MSD defined.', e)
+                logger.error(f'Particle {p} has no MSD defined.')
+                print(e)
                 continue
 
-            def to_minimize(X):
-                return d_r(X) - fit[0] / H(X, C)
+            def to_minimize(particle_radius):
+                # return d_r(particle_radius, T=273.15 + 20, eta=viscosity_water) - fit[0] / Renkin(particle_radius, channel_diameter)
+                return d_r(particle_radius, T=273.15 + 22, eta=viscosity_water) - fit[0] / 2 / Renkin(particle_radius, channel_diameter)
+                # fit[0] is the linear component of the 1st order polynomial fit if MSD(t) = 2*D*t
+                # Hence diffusion D = fit[0]/2
+                # There was some uncertainty about the whether the hindrance factor should be divided or multiplied.
+                # But multiplying instead of dividing gives completely incorrect results.
             try:
-                r = root_scalar(to_minimize, bracket=(1E-9, C/2)).root
+                r = root_scalar(to_minimize, bracket=(1E-9, channel_diameter/2*0.4)).root
                 self.pcle_data[p].update({'r': r})
             except:
                 print(f'Problem with pcle {p}')
@@ -451,10 +485,82 @@ class AnalyzeWaterfall:
 
 if __name__ == '__main__':
     a = AnalyzeWaterfall()
-    a.load_waterfall(r'C:\Users\aron\Documents\NanoCET\data\test.h5')
+    a.load_waterfall(r'C:\Users\aron\Documents\NanoCET\data\test1.h5')
     a.calculate_coupled_intensity(10, 6000)
     a.crop_waterfall(8300, 28300) # 64300)
-    a.calculate_background(None, 20)
-    a.calculate_mask(200, 20, 100)
+    print('calculating background')
+    a.calculate_background(30)
+    a.calculate_mask(190, 20, 100)
     a.label_mask(200)
-    print('done')
+    print('analyzing particles')
+    a.analyze_traces()
+    a.calculate_particle_properties()
+    import matplotlib.pyplot as plt
+    plt.hist([1e9 * 2 * v.get('r', np.nan) for v in a.pcle_data.values()], 40)
+
+    # plt.clf()
+    # fig, axs = plt.subplots(3, sharex=True, sharey=True)
+    # axs[0].hist([1e9 * 2 * v.get('r_no_H', np.nan) for v in a.pcle_data.values()], bins = np.arange(-2.5, 152.5, step=5), fc=(0, 0, 1, 0.5))
+    # axs[0].hist([1e9 * 2 * v.get('r_no_H_30', np.nan) for v in a.pcle_data.values()], bins=np.arange(-2.5, 152.5, step=5), fc=(1, 0, 0, 0.5))
+    # axs[0].set_title('no hindrance correction, 20C (blue) and 30C (red)')
+    # axs[0].set_xticks(np.arange(0, 150, 10))
+    #
+    # axs[1].hist([1e9 * 2 * v.get('r', np.nan) for v in a.pcle_data.values()], bins = np.arange(-2.5, 152.5, step=5), fc=(0, 0, 1, 0.5))
+    # axs[1].hist([1e9 * 2 * v.get('r_30', np.nan) for v in a.pcle_data.values()], bins=np.arange(-2.5, 152.5, step=5), fc=(1, 0, 0, 0.5))
+    # axs[1].set_title('Renkin, 20C (blue) and 30C (red)')
+    # axs[1].set_xticks(np.arange(0, 150, 10))
+    #
+    # axs[2].hist([1e9*2*v.get('r_d', np.nan) for v in a.pcle_data.values()], bins = np.arange(-2.5, 152.5, step=5), fc=(0, 0, 1, 0.5))
+    # axs[2].hist([1e9 * 2 * v.get('r_d_30', np.nan) for v in a.pcle_data.values()], bins=np.arange(-2.5, 152.5, step=5), fc=(1, 0, 0, 0.5))
+    # axs[2].set_title('DechadilokDeen, 20C (blue) and 30C (red)')
+    # axs[2].set_xticks(np.arange(0, 150, 10))
+    #
+    # plt.xlabel('diameter (um)')
+
+
+    # def weighted_hist(pl, data, key='r', color=(0, 0, 1, 0.5), avg_weight=False):
+    #     diameter = [1e9 * 2 * v.get(key, np.nan) for v in data.values()]
+    #     length_of_particle_data = [v.get('MSD').shape[0]-2 for v in data.values()]
+    #     if avg_weight:
+    #         mean = np.mean(length_of_particle_data)
+    #         print(mean)
+    #         length_of_particle_data = np.ones_like(diameter) * mean
+    #     pl.hist(diameter, weights=length_of_particle_data, bins=np.arange(-2.5, 152.5, step=5), fc=color)
+    #
+    #
+    #
+    # fig, axs = plt.subplots(2, sharex=True)
+    # ax=0
+    # weighted_hist(axs[ax], a.pcle_data, 'r')
+    # weighted_hist(axs[ax], a.pcle_data, 'r', (0, 0.8, 0, 0.5), avg_weight=True)
+    # axs[ax].set_title('Renkin 20C, weighted (blue) and "normal" (green)')
+    # axs[ax].set_xticks(np.arange(0, 150, 10))
+    #
+    # ax += 1
+    # weighted_hist(axs[ax], a.pcle_data, 'r_only_linear')
+    # weighted_hist(axs[ax], a.pcle_data, 'r_only_linear', (0, 0.8, 0, 0.5), avg_weight=True)
+    # axs[ax].set_title('Renkin 20C, removed offset')
+    # axs[ax].set_xticks(np.arange(0, 150, 10))
+    #
+    # plt.xlabel('diameter (um)')
+    #
+    #
+    # # plt.legend(['Renkin 20C', 'DechadilokDeen 20C', 'Renkin 30C', 'DechadilokDeen 30C'])
+    # # plt.title('comparing different hindrance models and temperatures')
+    # print('done')
+    #
+    # # an example of fitting:
+    # q = np.array(a.pcle_data[1]['MSD']['MSD'].array)
+    # plt.plot(q)
+    # plt.plot(q[:5], 'bo')
+    # lagtimes = np.arange(5)
+    # fit = np.polyfit(lagtimes, q[:5], 1)
+    # plt.plot(np.polyval(fit, lagtimes))
+    #
+    # # model = lambda slope: lagtimes * slope
+    # # err = lambda slope: np.sum((q[:5] - model(slope))**2)
+    # # slope = fmin(err, [q[4] / lagtimes[-1]])
+    # # plt.plot(model(slope[0]))
+    #
+    # slope, _, _, _ = np.linalg.lstsq(lagtimes[:, np.newaxis], q[:5], rcond=None)
+    # plt.plot(slope*lagtimes)
