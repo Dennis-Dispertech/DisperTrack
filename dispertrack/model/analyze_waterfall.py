@@ -69,10 +69,10 @@ class AnalyzeWaterfall:
 
         atexit.register(self.finalize)
 
-    def load_waterfall(self, filename, mode='a'):
+    def load_waterfall(self, filename, mode='a', group='data', dataset='timelapse'):
         file = h5py.File(filename, mode=mode)
-        self.meta = json.loads(file['data']['metadata'][()].decode())
-        self.waterfall = self.find_waterfall(file)
+        self.meta = json.loads(file[group]['metadata'][()].decode())
+        self.waterfall = self.find_waterfall(file, group=group, dataset=dataset)
 
         for key in self.metadata.keys():
             if key in self.meta.keys():
@@ -101,11 +101,16 @@ class AnalyzeWaterfall:
         self.waterfall = self.waterfall.T
 
     @staticmethod
-    def find_waterfall(file):
-        path = file.visit(lambda name: name if 'waterfall' in name else None)
-        if path is None:
-            path = file.visit(lambda name: name if 'timelapse' in name else None)
-        return file[path][()]
+    def find_waterfall(file, group=None, dataset=None):
+
+        if group is None and dataset is None:
+            path = file.visit(lambda name: name if 'waterfall' in name else None)
+            if path is None:
+                path = file.visit(lambda name: name if 'timelapse' in name else None)
+            return file[path][()]
+
+        else:
+            return file[group][dataset][()]
 
     def clear_crop(self):
         if self.file is not None:
@@ -115,6 +120,8 @@ class AnalyzeWaterfall:
         """ Selects the range of frames that will be analyzed, this is handy to remove unwanted data from memory and
         it helps speed up the GUI.
         """
+        if stop == -1:
+            stop = self.waterfall.shape[1]
         self.waterfall = self.waterfall[:, start:stop]
         self.metadata['start_frame'] = int(start)
         self.metadata['end_frame'] = int(stop)
@@ -209,7 +216,7 @@ class AnalyzeWaterfall:
         for i, f in enumerate(range(min_frame, max_frame)):
             pixels = coord[coord[:, 1] == f, 0]
             if len(pixels) > 1:
-                center = np.mean(pixels).astype(int)
+                center = np.mean(pixels).astype(np.int)
                 cropped_data[0, i] = center
                 if width > center:
                     cropped_data[1:, i] = np.nan
@@ -339,11 +346,17 @@ class AnalyzeWaterfall:
                 })
 
     def calculate_particle_properties(self):
-        channel_diameter = self.meta.get('channel_diameter', '670')
-        channel_diameter = int(channel_diameter)*1E-9
-        self.metadata.update({'Channel diameter (nm)': channel_diameter})
+        """
+        TODO: take out the hindrance factor to measure raw calibration data
+        """
+        C = self.meta.get('channel_diameter', '560')
+        self.metadata.update({'Channel diameter (nm)': C})
+        C = int(C)*1E-9
 
+        channel_diameter = self.meta.get('channel_diameter', '560')
+        channel_diameter = int(channel_diameter)*1E-9
         bkg_intensity = np.mean(self.waterfall[:, :10])
+        self.metadata['bkg_intensity'] = bkg_intensity
 
         fps = self.meta['fps']
         lagtimes = np.arange(1, 5) / fps
@@ -391,48 +404,6 @@ class AnalyzeWaterfall:
             except:
                 print(f'Problem with pcle {p}')
 
-            # Also calculate with hindrance equation from DechadilokDeen (2006) to compare
-            # This appears to result in smaller particle size though.
-            # def to_minimize(particle_radius):
-            #     return d_r(particle_radius, T=273.15+20, eta=viscosity_water) - fit[0]/2 / DechadilokDeen(particle_radius, channel_diameter)
-            # try:
-            #     r = root_scalar(to_minimize, bracket=(1E-9, channel_diameter/2*0.9)).root
-            #     self.pcle_data[p].update({'r_d': r})
-            # except:
-            #     print(f'Problem with pcle {p}')
-            #
-            # def to_minimize(particle_radius):
-            #     return d_r(particle_radius, T=273.15 + 20, eta=viscosity_water) - slope / 2 / Renkin(particle_radius, channel_diameter)
-            # try:
-            #     r = root_scalar(to_minimize, bracket=(1E-9, channel_diameter/2*0.4)).root
-            #     self.pcle_data[p].update({'r_only_linear': r})
-            # except:
-            #     print(f'Problem with pcle {p}')
-
-            # def to_minimize(particle_radius):
-            #     return d_r(particle_radius, T=273.15+30, eta=viscosity_water) - fit[0]/2 / DechadilokDeen(particle_radius, channel_diameter)
-            # try:
-            #     r = root_scalar(to_minimize, bracket=(1E-9, channel_diameter/2*0.9)).root
-            #     self.pcle_data[p].update({'r_d_30': r})
-            # except:
-            #     print(f'Problem with pcle {p}')
-
-            # def to_minimize(particle_radius):
-            #     return d_r(particle_radius, T=273.15 + 30, eta=viscosity_water) - fit[0] / 2 / Renkin(particle_radius, channel_diameter)
-            # try:
-            #     r = root_scalar(to_minimize, bracket=(1E-9, channel_diameter/2*0.4)).root
-            #     self.pcle_data[p].update({'r_30': r})
-            # except:
-            #     print(f'Problem with pcle {p}')
-            #
-            # def to_minimize(particle_radius):
-            #     return d_r(particle_radius, T=273.15 + 30, eta=viscosity_water) - slope / 2 / Renkin(particle_radius, channel_diameter)
-            # try:
-            #     r = root_scalar(to_minimize, bracket=(1E-9, channel_diameter/2*0.4)).root
-            #     self.pcle_data[p].update({'r_only_linear_30': r})
-            # except:
-            #     print(f'Problem with pcle {p}')
-
     def save_particle_label(self, data, metadata, particle_num):
         if self.mask is not None:
             if 'mask' not in self.file.keys():
@@ -458,8 +429,7 @@ class AnalyzeWaterfall:
         for key, value in metadata.items():
             dset.attrs[key] = value
 
-    # def save_particle_data(self):  # particle_window.save_data passes 3 arguments ???
-    def save_particle_data(self, data, metadata, particle_num = None):
+    def save_particle_data(self):
         """ Save the particle data to the same file from which the waterfall was taken. The data to be saved is a 2D
         array that contains the position and intensity at each frame, or 0 if no information is available (for
         instance if the peak was not detected. Metadata stores the parameters needed to re-acquire the same data,
@@ -522,82 +492,10 @@ class AnalyzeWaterfall:
 
 if __name__ == '__main__':
     a = AnalyzeWaterfall()
-    a.load_waterfall(r'D:\Data\Waterfall_60nm_1.h5')
+    a.load_waterfall(r'C:\Users\aron\Documents\NanoCET\data\test.h5')
     a.calculate_coupled_intensity(10, 6000)
     a.crop_waterfall(8300, 28300) # 64300)
-    print('calculating background')
-    a.calculate_background(30)
-    a.calculate_mask(70, 20, 100)
+    a.calculate_background(None, 20)
+    a.calculate_mask(200, 20, 100)
     a.label_mask(200)
-    print('analyzing particles')
-    a.analyze_traces()
-    a.calculate_particle_properties()
-    import matplotlib.pyplot as plt
-    plt.hist([1e9 * 2 * v.get('r', np.nan) for v in a.pcle_data.values()], 40)
-
-    # plt.clf()
-    # fig, axs = plt.subplots(3, sharex=True, sharey=True)
-    # axs[0].hist([1e9 * 2 * v.get('r_no_H', np.nan) for v in a.pcle_data.values()], bins = np.arange(-2.5, 152.5, step=5), fc=(0, 0, 1, 0.5))
-    # axs[0].hist([1e9 * 2 * v.get('r_no_H_30', np.nan) for v in a.pcle_data.values()], bins=np.arange(-2.5, 152.5, step=5), fc=(1, 0, 0, 0.5))
-    # axs[0].set_title('no hindrance correction, 20C (blue) and 30C (red)')
-    # axs[0].set_xticks(np.arange(0, 150, 10))
-    #
-    # axs[1].hist([1e9 * 2 * v.get('r', np.nan) for v in a.pcle_data.values()], bins = np.arange(-2.5, 152.5, step=5), fc=(0, 0, 1, 0.5))
-    # axs[1].hist([1e9 * 2 * v.get('r_30', np.nan) for v in a.pcle_data.values()], bins=np.arange(-2.5, 152.5, step=5), fc=(1, 0, 0, 0.5))
-    # axs[1].set_title('Renkin, 20C (blue) and 30C (red)')
-    # axs[1].set_xticks(np.arange(0, 150, 10))
-    #
-    # axs[2].hist([1e9*2*v.get('r_d', np.nan) for v in a.pcle_data.values()], bins = np.arange(-2.5, 152.5, step=5), fc=(0, 0, 1, 0.5))
-    # axs[2].hist([1e9 * 2 * v.get('r_d_30', np.nan) for v in a.pcle_data.values()], bins=np.arange(-2.5, 152.5, step=5), fc=(1, 0, 0, 0.5))
-    # axs[2].set_title('DechadilokDeen, 20C (blue) and 30C (red)')
-    # axs[2].set_xticks(np.arange(0, 150, 10))
-    #
-    # plt.xlabel('diameter (um)')
-
-
-    # def weighted_hist(pl, data, key='r', color=(0, 0, 1, 0.5), avg_weight=False):
-    #     diameter = [1e9 * 2 * v.get(key, np.nan) for v in data.values()]
-    #     length_of_particle_data = [v.get('MSD').shape[0]-2 for v in data.values()]
-    #     if avg_weight:
-    #         mean = np.mean(length_of_particle_data)
-    #         print(mean)
-    #         length_of_particle_data = np.ones_like(diameter) * mean
-    #     pl.hist(diameter, weights=length_of_particle_data, bins=np.arange(-2.5, 152.5, step=5), fc=color)
-    #
-    #
-    #
-    # fig, axs = plt.subplots(2, sharex=True)
-    # ax=0
-    # weighted_hist(axs[ax], a.pcle_data, 'r')
-    # weighted_hist(axs[ax], a.pcle_data, 'r', (0, 0.8, 0, 0.5), avg_weight=True)
-    # axs[ax].set_title('Renkin 20C, weighted (blue) and "normal" (green)')
-    # axs[ax].set_xticks(np.arange(0, 150, 10))
-    #
-    # ax += 1
-    # weighted_hist(axs[ax], a.pcle_data, 'r_only_linear')
-    # weighted_hist(axs[ax], a.pcle_data, 'r_only_linear', (0, 0.8, 0, 0.5), avg_weight=True)
-    # axs[ax].set_title('Renkin 20C, removed offset')
-    # axs[ax].set_xticks(np.arange(0, 150, 10))
-    #
-    # plt.xlabel('diameter (um)')
-    #
-    #
-    # # plt.legend(['Renkin 20C', 'DechadilokDeen 20C', 'Renkin 30C', 'DechadilokDeen 30C'])
-    # # plt.title('comparing different hindrance models and temperatures')
-    # print('done')
-    #
-    # # an example of fitting:
-    # q = np.array(a.pcle_data[1]['MSD']['MSD'].array)
-    # plt.plot(q)
-    # plt.plot(q[:5], 'bo')
-    # lagtimes = np.arange(5)
-    # fit = np.polyfit(lagtimes, q[:5], 1)
-    # plt.plot(np.polyval(fit, lagtimes))
-    #
-    # # model = lambda slope: lagtimes * slope
-    # # err = lambda slope: np.sum((q[:5] - model(slope))**2)
-    # # slope = fmin(err, [q[4] / lagtimes[-1]])
-    # # plt.plot(model(slope[0]))
-    #
-    # slope, _, _, _ = np.linalg.lstsq(lagtimes[:, np.newaxis], q[:5], rcond=None)
-    # plt.plot(slope*lagtimes)
+    print('done')
