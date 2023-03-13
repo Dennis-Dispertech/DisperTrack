@@ -231,8 +231,8 @@ class WaterfallWindow(QMainWindow):
             self.showing_mask = True
 
     def analyze_particles(self):
-        self.statusbar.showMessage('Analyzing particles')
         self.analyze_model.metadata.update({'Temperature (C)': float(self.line_temperature.text())})
+        self.statusbar.showMessage('Analyzing particles')
         self.analyze_model.analyze_traces()
         self.analyze_model.calculate_particle_properties()
         self.statusbar.showMessage('')

@@ -339,10 +339,22 @@ class AnalyzeWaterfall:
                 })
 
     def calculate_particle_properties(self):
+<<<<<<< HEAD
         channel_diameter = self.meta.get('channel_diameter', '670')
         channel_diameter = int(channel_diameter)*1E-9
         self.metadata.update({'Channel diameter (nm)': channel_diameter})
 
+=======
+        """
+        TODO: take out the hindrance factor to measure raw calibration data
+        """
+        C = self.meta.get('channel_diameter', '560')
+        self.metadata.update({'Channel diameter (nm)': C})
+        C = int(C)*1E-9
+
+        channel_diameter = self.meta.get('channel_diameter', '560')
+        channel_diameter = int(channel_diameter)*1E-9
+>>>>>>> 8474b45 (Merged remote and local changes)
         bkg_intensity = np.mean(self.waterfall[:, :10])
         self.metadata['bkg_intensity'] = bkg_intensity
 
@@ -381,7 +393,11 @@ class AnalyzeWaterfall:
 
             def to_minimize(particle_radius):
                 # return d_r(particle_radius, T=273.15 + 20, eta=viscosity_water) - fit[0] / Renkin(particle_radius, channel_diameter)
+<<<<<<< HEAD
                 return d_r(particle_radius, T=273.15 + self.metadata['Temperature (C)'], eta=viscosity_water) - fit[0] / 2 / Renkin(particle_radius, channel_diameter)
+=======
+                return d_r(particle_radius, T=273.15 + 22, eta=viscosity_water) - fit[0] / 2 / Renkin(particle_radius, channel_diameter)
+>>>>>>> 8474b45 (Merged remote and local changes)
                 # fit[0] is the linear component of the 1st order polynomial fit if MSD(t) = 2*D*t
                 # Hence diffusion D = fit[0]/2
                 # There was some uncertainty about the whether the hindrance factor should be divided or multiplied.
@@ -523,12 +539,20 @@ class AnalyzeWaterfall:
 
 if __name__ == '__main__':
     a = AnalyzeWaterfall()
+<<<<<<< HEAD
     a.load_waterfall(r'D:\Data\Waterfall_60nm_1.h5')
+=======
+    a.load_waterfall(r'C:\Users\aron\Documents\NanoCET\data\test1.h5')
+>>>>>>> 8474b45 (Merged remote and local changes)
     a.calculate_coupled_intensity(10, 6000)
     a.crop_waterfall(8300, 28300) # 64300)
     print('calculating background')
     a.calculate_background(30)
+<<<<<<< HEAD
     a.calculate_mask(70, 20, 100)
+=======
+    a.calculate_mask(190, 20, 100)
+>>>>>>> 8474b45 (Merged remote and local changes)
     a.label_mask(200)
     print('analyzing particles')
     a.analyze_traces()
